@@ -3,7 +3,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+"""
+Trying to read the copernicus data
+"""
 
+bla = 12345
 sal_path = 'D:/WWLLN-Intensity/Validation CSV/sal.nc'
 sal_ds = xr.open_dataset(sal_path)
 sal_array = sal_ds.so.isel(time=100)
