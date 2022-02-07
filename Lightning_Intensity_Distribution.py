@@ -7,8 +7,7 @@ from scipy.stats import binned_statistic_2d
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
-from matplotlib.colors import LogNorm
-
+import pygrib
 
 def get_years_path():
     main_dir_path = 'D:/WWLLN-Intensity'
