@@ -6,12 +6,14 @@ import pandas as pd
 nc_file = 'D:/WWLLN-Intensity/Validation CSV/alk.nc'
 alk_ds = xr.open_dataset(nc_file)
 alk_sample = alk_ds.talk.isel(time=0)
+# notice that by specifying longitude = 1 there is no need to create a list
 alk_splong = alk_sample.isel(longitude=1)
-alk_splong_data = alk_splong.data.tolist()[0]
-long_array = alk_splong.data.tolist()[0]
 lat_array = alk_splong.latitude.data.tolist()
+alk_splong_data = alk_splong.data.tolist()[0]
 
 
+plt.plot(lat_array, alk_splong_data, marker='o', color='blue')
+plt.show()
 
 
 
