@@ -60,22 +60,23 @@ def get_year_files_dict(year_paths):
 def get_year_df_dict(all_files):
     all_years_df = {}
     for year in all_files:
-        months = list(all_files[year].keys())
-        months_df = {}
-        for month in months:
-            files = all_files[year][month]
-            fields = ['Date', 'Long', 'Lat', 'Energy_J']
-            data = []
-            for file in files:
-                df = pd.read_csv(file, delimiter=',', names=['Date', 'Time', 'Lat', 'Long', 'Resid', 'Nstn', 'Energy_J', 'Energy_Uncertainty', 'Nstn_Energy'], usecols=fields)
-                df = df[(df.Long > -6) & (df.Long < 36)]
-                df = df[(df.Lat > 30) & (df.Lat < 46)]
-                for date, long, lat, energy in zip(df.Date, df.Long, df.Lat, df.Energy_J):
-                    data.append([date, long, lat, energy])
-            month_df = pd.DataFrame(data, columns=fields)
-            month_df.drop_duplicates(['Date', 'Long', 'Lat', 'Energy_J'], keep='first', inplace=True)
-            months_df[month] = month_df
-        all_years_df[year] = months_df
+        if year == '2009-10':
+            months = list(all_files[year].keys())
+            months_df = {}
+            for month in months:
+                files = all_files[year][month]
+                fields = ['Date', 'Long', 'Lat', 'Energy_J']
+                data = []
+                for file in files:
+                    df = pd.read_csv(file, delimiter=',', names=['Date', 'Time', 'Lat', 'Long', 'Resid', 'Nstn', 'Energy_J', 'Energy_Uncertainty', 'Nstn_Energy'], usecols=fields)
+                    df = df[(df.Long > -6) & (df.Long < 36)]
+                    df = df[(df.Lat > 30) & (df.Lat < 46)]
+                    for date, long, lat, energy in zip(df.Date, df.Long, df.Lat, df.Energy_J):
+                        data.append([date, long, lat, energy])
+                month_df = pd.DataFrame(data, columns=fields)
+                month_df.drop_duplicates(['Date', 'Long', 'Lat', 'Energy_J'], keep='first', inplace=True)
+                months_df[month] = month_df
+            all_years_df[year] = months_df
 
     return all_years_df
 
