@@ -60,23 +60,22 @@ def get_year_files_dict(year_paths):
 def get_year_df_dict(all_files):
     all_years_df = {}
     for year in all_files:
-        if year == '2009-10':
-            months = list(all_files[year].keys())
-            months_df = {}
-            for month in months:
-                files = all_files[year][month]
-                fields = ['Date', 'Long', 'Lat', 'Energy_J']
-                data = []
-                for file in files:
-                    df = pd.read_csv(file, delimiter=',', names=['Date', 'Time', 'Lat', 'Long', 'Resid', 'Nstn', 'Energy_J', 'Energy_Uncertainty', 'Nstn_Energy'], usecols=fields)
-                    df = df[(df.Long > -6) & (df.Long < 36)]
-                    df = df[(df.Lat > 30) & (df.Lat < 46)]
-                    for date, long, lat, energy in zip(df.Date, df.Long, df.Lat, df.Energy_J):
-                        data.append([date, long, lat, energy])
-                month_df = pd.DataFrame(data, columns=fields)
-                month_df.drop_duplicates(['Date', 'Long', 'Lat', 'Energy_J'], keep='first', inplace=True)
-                months_df[month] = month_df
-            all_years_df[year] = months_df
+        months = list(all_files[year].keys())
+        months_df = {}
+        for month in months:
+            files = all_files[year][month]
+            fields = ['Date', 'Long', 'Lat', 'Energy_J']
+            data = []
+            for file in files:
+                df = pd.read_csv(file, delimiter=',', names=['Date', 'Time', 'Lat', 'Long', 'Resid', 'Nstn', 'Energy_J', 'Energy_Uncertainty', 'Nstn_Energy'], usecols=fields)
+                df = df[(df.Long > -6) & (df.Long < 36)]
+                df = df[(df.Lat > 30) & (df.Lat < 46)]
+                for date, long, lat, energy in zip(df.Date, df.Long, df.Lat, df.Energy_J):
+                    data.append([date, long, lat, energy])
+            month_df = pd.DataFrame(data, columns=fields)
+            month_df.drop_duplicates(['Date', 'Long', 'Lat', 'Energy_J'], keep='first', inplace=True)
+            months_df[month] = month_df
+        all_years_df[year] = months_df
 
     return all_years_df
 
@@ -548,24 +547,34 @@ def main():
     total_array_mean = []
 
     for year in list(all_years_points.keys()):
-        dec_array, jan_array, feb_array, total_array = get_energy_plot_mean(year, all_years_points)
+        dec_array, jan_array, feb_array, total_array = get_energy_plot_sum(year, all_years_points)
+        # dec_array, jan_array, feb_array, total_array = get_energy_plot_mean(year, all_years_points)
         dec_array_mean.append(dec_array)
         jan_array_mean.append(jan_array)
         feb_array_mean.append(feb_array)
         total_array_mean.append(total_array)
         print(f'finished statistics for {year}')
 
-    # dec_sum, jan_sum, feb_sum, total_sum = get_energy_plot_sum_total(dec_array_mean, jan_array_mean, feb_array_mean, total_array_mean)
-    dec_mean, jan_mean, feb_mean, total_mean = get_energy_plot_mean_total(dec_array_mean, jan_array_mean, feb_array_mean, total_array_mean)
+    dec_sum, jan_sum, feb_sum, total_sum = get_energy_plot_sum_total(dec_array_mean, jan_array_mean, feb_array_mean, total_array_mean)
+    # dec_mean, jan_mean, feb_mean, total_mean = get_energy_plot_mean_total(dec_array_mean, jan_array_mean, feb_array_mean, total_array_mean)
 
-    df_dec = pd.DataFrame(dec_mean[0])
-    df_dec.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/dec_total_mean.csv')
-    df_jan = pd.DataFrame(jan_mean[0])
-    df_jan.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/jan_total_mean.csv')
-    df_feb = pd.DataFrame(feb_mean[0])
-    df_feb.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/feb_total_mean.csv')
-    df_total = pd.DataFrame(total_mean)
-    df_total.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/total_total_mean.csv')
+    df_dec = pd.DataFrame(dec_sum[0])
+    df_dec.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/dec_total_sum.csv')
+    df_jan = pd.DataFrame(jan_sum[0])
+    df_jan.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/jan_total_sum.csv')
+    df_feb = pd.DataFrame(feb_sum[0])
+    df_feb.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/feb_total_sum.csv')
+    df_total = pd.DataFrame(total_sum)
+    df_total.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/total_total_sum.csv')
+
+    # df_dec = pd.DataFrame(dec_mean[0])
+    # df_dec.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/dec_total_mean.csv')
+    # df_jan = pd.DataFrame(jan_mean[0])
+    # df_jan.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/jan_total_mean.csv')
+    # df_feb = pd.DataFrame(feb_mean[0])
+    # df_feb.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/feb_total_mean.csv')
+    # df_total = pd.DataFrame(total_mean)
+    # df_total.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/total_total_mean.csv')
 
 if __name__ == '__main__':
     main()
