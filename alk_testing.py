@@ -5,80 +5,8 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from shapely import geometry
 import math
-import os
-import scipy.io
 from scipy.stats import binned_statistic_2d
-
-
-# def get_years_path():
-#     main_dir_path = 'D:/WWLLN-Intensity'
-#     years = []
-#     for item in os.listdir(main_dir_path):
-#         full_path = os.path.join(main_dir_path, item)
-#         if os.path.isdir(full_path) == True and item[0:3] == 'DJF':
-#             full_path = full_path.replace('\\', '/')
-#             years.append(full_path)
-#     years.sort()
-#     return years
-#
-#
-# def get_all_files(dir_path):
-#     # This function receives a path and returns a list of all existing files in that path.
-#     all_files = os.listdir(dir_path)
-#     loc_files = []
-#     for file in all_files:
-#         fullPath = os.path.join(dir_path, file)
-#         fullPath = fullPath.replace('\\', '/')
-#         if file.find('.loc') != -1 and file[0:2] != '._':
-#             loc_files.append(fullPath)
-#         else:
-#             pass
-#     return loc_files
-#
-#
-# def get_year_files_dict(year_paths):
-#     all_files = {}
-#     for year in year_paths:
-#         year_name = year[-7:]
-#         if year != 'D:/WWLLN-Intensity/DJF2020-21':
-#             dec_files = []
-#             jan_files = []
-#             feb_files = []
-#             files_folder = os.path.join(year,'loc_files')
-#             files_folder = files_folder.replace('\\', '/')
-#             files = get_all_files(files_folder)
-#             for file in files:
-#                 if file[-8:-6] == '12':
-#                     dec_files.append(file)
-#                 if file[-8:-6] == '01':
-#                     jan_files.append(file)
-#                 if file[-8:-6] == '02':
-#                     feb_files.append(file)
-#             all_files[year_name] = {'Dec': dec_files, 'Jan': jan_files, 'Feb': feb_files}
-#     return all_files
-#
-#
-# def get_year_df_dict(all_files):
-#     all_years_df = {}
-#     for year in all_files:
-#         months = list(all_files[year].keys())
-#         months_df = {}
-#         for month in months:
-#             files = all_files[year][month]
-#             fields = ['Date', 'Long', 'Lat', 'Energy_J']
-#             data = []
-#             for file in files:
-#                 df = pd.read_csv(file, delimiter=',', names=['Date', 'Time', 'Lat', 'Long', 'Resid', 'Nstn', 'Energy_J', 'Energy_Uncertainty', 'Nstn_Energy'], usecols=fields)
-#                 df = df[(df.Long > -6) & (df.Long < 36)]
-#                 df = df[(df.Lat > 30) & (df.Lat < 46)]
-#                 for date, long, lat, energy in zip(df.Date, df.Long, df.Lat, df.Energy_J):
-#                     data.append([date, long, lat, energy])
-#             month_df = pd.DataFrame(data, columns=fields)
-#             month_df.drop_duplicates(['Date', 'Long', 'Lat', 'Energy_J'], keep='first', inplace=True)
-#             months_df[month] = month_df
-#         all_years_df[year] = months_df
-#
-#     return all_years_df
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def get_long_lats_med():
@@ -218,32 +146,7 @@ def get_energy_plot_mean(year, all_years_points):
     return dec_array, jan_array, feb_array, total_mean_array
 
 
-def get_energy_plot_mean_total(total_mean, ax):
-    long_points_med, lat_points_med, islands_dict = get_long_lats_med()
-    cmap = cm.get_cmap('YlOrRd')
-    # cmap = cm.get_cmap('gray')
-    # ax.plot(long_points_med, lat_points_med, color='k')
-    #
-    # for island in islands_dict:
-    #     coords = islands_dict[island]
-    #     longs_island = coords[0]
-    #     lats_island = coords[1]
-    #     ax.plot(longs_island, lats_island, color='k')
-
-    total_mean[total_mean == 0] = np.nan
-    imshow_mean_total = ax.imshow(total_mean.T, origin='lower', cmap=cmap, alpha=0.3,  extent=[min(long_points_med), max(long_points_med), min(lat_points_med), max(lat_points_med)])
-    imshow_mean_total.set_clim(vmin=100, vmax=10000)
-    # cb1 = plt.colorbar(imshow_mean_total, shrink=0.5)
-
-    # cb = fig.colorbar(imshow_mean_total, ax=ax, shrink=0.6)
-    # cb.set_label('J * 100 km^-2', fontsize=14, rotation=-90, labelpad=30)
-    # fig.suptitle(f'Lightnings Intensity Mean (Joule) for 2009-2020', fontsize=20)
-
-
-def main():
-    total_mean_file = 'D:/WWLLN-Intensity/Validation CSV/total_mean/total_total_mean.csv'
-    total_mean = pd.read_csv(total_mean_file)
-    total_mean = total_mean.to_numpy()
+def get_array_mean():
     nc_file = 'D:/WWLLN-Intensity/Validation CSV/alk.nc'
     alk_ds = xr.open_dataset(nc_file)
     pandas_times = alk_ds.time.to_pandas()
@@ -259,16 +162,24 @@ def main():
             array_list.append(np_arr)
 
     mean_array = np.mean(array_list, axis=0)
+    mean_array_micromol = mean_array * 974.658
     lat_list = alk_ds.latitude.data.tolist()
     long_list = alk_ds.longitude.data.tolist()
+    return mean_array_micromol, lat_list, long_list
 
-    # cmap = cm.get_cmap('winter')
-    cmap = cm.get_cmap('viridis')
-    # cmap.set_under('w')
-    # alk_plot = plt.pcolormesh(long_list, lat_list, mean_array[0], alpha= 1, cmap= cmap, shading='gouraud', zorder=0)
 
-    levels = np.linspace(2, 3, 30)
-    alk_plot = plt.contour(long_list, lat_list, mean_array[0], alpha= 1, cmap= cmap, levels=levels, shading='gouraud', zorder=75, linewidths= 4)
+def get_alk_plot(mean_array, lat_list, long_list):
+    # cmap = cm.get_cmap('YlGnBu')
+    cmap = cm.get_cmap('PuBu')
+    min_alk = round(2.462 * 974.658)
+    max_alk = round(2.873 * 974.658)
+    levels = np.linspace(min_alk, max_alk, 10)
+    alk_plot = plt.contourf(long_list, lat_list, mean_array[0], alpha=1, cmap=cmap, levels=levels, zorder=0, linewidths=1)
+    ticks = np.linspace(min_alk, max_alk, 5, endpoint=True)
+    cb2 = plt.colorbar(alk_plot, ticks= ticks, shrink=0.55)
+    cb2.ax.set_title('\u03BC' + 'mol' '/ Kg\n', fontsize=14)
+    # cb2.set_label('\u03BC' + 'mol' '/ Kg', fontsize=14, labelpad=30)
+
     long_points_med, lat_points_med, islands_dict = get_long_lats_med()
     plt.plot(long_points_med, lat_points_med, color='k', zorder=100)
     for island in islands_dict:
@@ -276,16 +187,50 @@ def main():
         longs_island = coords[0]
         lats_island = coords[1]
         plt.plot(longs_island, lats_island, color='k', zorder=100)
-    # plt.clabel(alk_plot, inline=True, fontsize=5)
     ax = plt.gca()
-    get_energy_plot_mean_total(total_mean, ax)
+    # plt.clabel(alk_plot, inline=True, fontsize=6)
+    return ax
 
+
+def get_nparr_from_csv():
+    total_sum_file = 'D:/WWLLN-Intensity/Validation CSV/total_mean/sum/total_total_sum.csv'
+    total_sum = pd.read_csv(total_sum_file)
+    total_sum = total_sum.to_numpy()
+    total_sum = np.where(total_sum < 2000000, np.nan, total_sum)
+    return total_sum
+
+
+def get_energy_plot_sum_total(total_sum, ax):
+    long_points_med, lat_points_med, islands_dict = get_long_lats_med()
+    cmap = cm.get_cmap('autumn')
+    total_sum[total_sum == 0] = np.nan
+    imshow_sum_total = ax.imshow(total_sum.T, origin='lower', cmap=cmap, alpha=1,  extent=[min(long_points_med), max(long_points_med), min(lat_points_med), max(lat_points_med)])
+    # imshow_sum_total.set_clim(vmin=2800000, vmax=3000000)
+    # divider = make_axes_locatable(plt.gca())
+    # cax = divider.append_axes("right", "2%", pad="3%")
+    # cb1 = plt.colorbar(imshow_sum_total, cax=cax, shrink=0.5)
+    # cb1.set_label('J * 100 km^-2', fontsize=14, rotation=-90, labelpad=30)
     ax.set_xlim([-7, 37])
     ax.set_ylim([29, 47])
-    plt.clim(2.4, 2.8)
-    # cb2 = plt.colorbar(alk_plot, shrink=0.5)
-    # cb2.set_label('Mol * m^-3', fontsize=14, rotation=90, labelpad=20)
-    plt.title('Mean Alklanity for 2009-2020 DJF\n', fontsize=24, color='darkred')
+
+    # cmap = cm.get_cmap('gray')
+    # ax.plot(long_points_med, lat_points_med, color='k')
+    # for island in islands_dict:
+    #     coords = islands_dict[island]
+    #     longs_island = coords[0]
+    #     lats_island = coords[1]
+    #     ax.plot(longs_island, lats_island, color='k')
+    # cb1 = plt.colorbar(imshow_mean_total, shrink=0.5)
+    # cb = fig.colorbar(imshow_mean_total, ax=ax, shrink=0.6)
+    # cb.set_label('J * 100 km^-2', fontsize=14, rotation=-90, labelpad=30)
+    # fig.suptitle(f'Lightnings Intensity Mean (Joule) for 2009-2020', fontsize=20)
+
+
+def main():
+    mean_array, lat_list, long_list = get_array_mean()
+    ax = get_alk_plot(mean_array, lat_list, long_list)
+    total_mean_light = get_nparr_from_csv()
+    get_energy_plot_sum_total(total_mean_light, ax)
     plt.tight_layout()
     plt.show()
 
@@ -296,56 +241,13 @@ if __name__ == '__main__':
 
 
 
-   # years = get_years_path()
-    # all_years_files = get_year_files_dict(years)
-    # all_years_dfs = get_year_df_dict(all_years_files)
-    # all_years_points = get_points_inside_med(all_years_dfs)
-    # dec_array_mean = []
-    # jan_array_mean = []
-    # feb_array_mean = []
-    # total_array_mean = []
-
-    # for year in list(all_years_points.keys()):
-    #     dec_array, jan_array, feb_array, total_array = get_energy_plot_mean(year, all_years_points)
-    #     dec_array_mean.append(dec_array)
-    #     jan_array_mean.append(jan_array)
-    #     feb_array_mean.append(feb_array)
-    #     total_array_mean.append(total_array)
-    #     print(f'finished statistics for {year}')
 
 
 
-# def main():
-#     nc_file = 'D:/WWLLN-Intensity/Validation CSV/alk.nc'
-#     alk_ds = xr.open_dataset(nc_file)
-#     times = alk_ds.time.to_pandas()
-#     pandas_times = alk_ds.time.to_pandas()
-#     array_list = []
-#     for i in pandas_times:
-#         file_name = str(i.year) + '-' + str(i.month)
-#         if i.month in [1, 2, 3]:
-#             ptimes_list = pandas_times.to_list()
-#             index = ptimes_list.index(i)
-#             alk_stime = alk_ds.talk.isel(time=index)
-#             np_arr = alk_stime.to_numpy()
-#             np_arr = np.nan_to_num(np_arr, nan=0)
-#             df = pd.DataFrame(np_arr[0])
-#
-#             df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/{file_name}.csv')
-#             array_list.append(np_arr)
-#     mean_array = np.mean(array_list, axis=0)
-#     df = pd.DataFrame(mean_array[0])
-#     df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/mean.csv')
-#     lat_list = alk_ds.latitude.data.tolist()
-#     long_list = alk_ds.longitude.data.tolist()
-#
-#     fig = plt.figure(figsize=(12, 6))
-#     cmap = cm.get_cmap('rainbow')
-#     cmap.set_under('w')
-#     plt.pcolormesh(long_list, lat_list, mean_array[0], cmap=cmap, shading='gouraud')
-#     plt.clim(2.4, 2.8)
-#     cb = plt.colorbar()
-#     cb.set_label('Mol * m^-3', fontsize=14, rotation=90, labelpad=30)
-#     plt.title('Mean Alklanity for 2009-2020 DJF\n', fontsize=24, color='darkred')
-#     plt.show()
-#
+    # plt.clabel(alk_plot, inline=True, fontsize=5)
+    # cb2 = plt.colorbar(alk_plot, shrink=0.5)
+    # cb2.set_label('Mol * m^-3', fontsize=14, rotation=90, labelpad=20)
+    # cmap = cm.get_cmap('winter')
+    # cmap.set_under('w')
+    # alk_plot = plt.pcolormesh(long_list, lat_list, mean_array[0], alpha= 1, cmap= cmap, shading='gouraud', zorder=0)
+
