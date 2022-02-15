@@ -6,6 +6,7 @@ import matplotlib.cm as cm
 from shapely import geometry
 import math
 from scipy.stats import binned_statistic_2d
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def get_long_lats_med():
@@ -168,14 +169,16 @@ def get_array_mean():
 
 
 def get_alk_plot(mean_array, lat_list, long_list):
-    cmap = cm.get_cmap('viridis')
+    # cmap = cm.get_cmap('YlGnBu')
+    cmap = cm.get_cmap('PuBu')
     min_alk = round(2.462 * 974.658)
     max_alk = round(2.873 * 974.658)
     levels = np.linspace(min_alk, max_alk, 10)
     alk_plot = plt.contourf(long_list, lat_list, mean_array[0], alpha=1, cmap=cmap, levels=levels, zorder=0, linewidths=1)
     ticks = np.linspace(min_alk, max_alk, 5, endpoint=True)
-    cb2 = plt.colorbar(alk_plot, ticks= ticks, shrink=0.5, location = 'left')
-    cb2.set_label('micromol / Kg', fontsize=14, rotation=90, labelpad=30)
+    cb2 = plt.colorbar(alk_plot, ticks= ticks, shrink=0.55)
+    cb2.ax.set_title('\u03BC' + 'mol' '/ Kg\n', fontsize=14)
+    # cb2.set_label('\u03BC' + 'mol' '/ Kg', fontsize=14, labelpad=30)
 
     long_points_med, lat_points_med, islands_dict = get_long_lats_med()
     plt.plot(long_points_med, lat_points_med, color='k', zorder=100)
@@ -193,18 +196,20 @@ def get_nparr_from_csv():
     total_sum_file = 'D:/WWLLN-Intensity/Validation CSV/total_mean/sum/total_total_sum.csv'
     total_sum = pd.read_csv(total_sum_file)
     total_sum = total_sum.to_numpy()
-    total_sum = np.where(total_sum < 1700000, np.nan, total_sum)
+    total_sum = np.where(total_sum < 2000000, np.nan, total_sum)
     return total_sum
 
 
 def get_energy_plot_sum_total(total_sum, ax):
     long_points_med, lat_points_med, islands_dict = get_long_lats_med()
-    cmap = cm.get_cmap('YlOrRd')
+    cmap = cm.get_cmap('autumn')
     total_sum[total_sum == 0] = np.nan
     imshow_sum_total = ax.imshow(total_sum.T, origin='lower', cmap=cmap, alpha=1,  extent=[min(long_points_med), max(long_points_med), min(lat_points_med), max(lat_points_med)])
-    imshow_sum_total.set_clim(vmin=1700000, vmax=3000000)
-    cb1 = plt.colorbar(imshow_sum_total, shrink=0.5)
-    cb1.set_label('J * 100 km^-2', fontsize=14, rotation=-90, labelpad=30)
+    # imshow_sum_total.set_clim(vmin=2800000, vmax=3000000)
+    # divider = make_axes_locatable(plt.gca())
+    # cax = divider.append_axes("right", "2%", pad="3%")
+    # cb1 = plt.colorbar(imshow_sum_total, cax=cax, shrink=0.5)
+    # cb1.set_label('J * 100 km^-2', fontsize=14, rotation=-90, labelpad=30)
     ax.set_xlim([-7, 37])
     ax.set_ylim([29, 47])
 
