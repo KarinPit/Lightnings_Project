@@ -95,18 +95,18 @@ def get_yearly_df(yearly_files_dict):
             df = df[(df.Long > -6) & (df.Long < 36)]
             df = df[(df.Lat > 34) & (df.Lat < 40)]
             for date, long, lat in zip(df.Date, df.Long, df.Lat):
-                if -5 <= long < 6.34:
-                    calc_lat1 = 0.382 * long + 36.922
+                if -4.43 <= long < 6.35:
+                    calc_lat1 = 0.382 * long + 36.93
                     if calc_lat1 - 0.5 < lat < calc_lat1 + 0.5:
                         data.append([date, long, lat])
 
-                if 6.34 <= long < 18.76:
-                    calc_lat2 = -0.391 * long + 41.830
+                if 6.35 <= long < 17.13:
+                    calc_lat2 = -0.403 * long + 41.92
                     if calc_lat2 - 0.5 < lat < calc_lat2 + 0.5:
                         data.append([date, long, lat])
 
-                if 18.76 <= long <= 38:
-                    calc_lat3 = -0.074 * long + 35.884
+                if 17.13 <= long <= 34.84:
+                    calc_lat3 = -0.14 * long + 37.34
                     if calc_lat3 - 0.5 < lat < calc_lat3 + 0.5:
                         data.append([date, long, lat])
         yearly_df = pd.DataFrame(data, columns=['Date', 'Long', 'Lat'])
@@ -214,18 +214,20 @@ def main():
     yearly_slope = create_scatter_plot_values_dict(yearly_values_dict)
     slope_bar_plot(yearly_slope)
 
+    df = pd.DataFrame({})
+    years_list = list(yearly_slope.keys())
+    slope_list = list(yearly_slope.values())
+    df['Years'] = years_list
+    df['Slope'] = slope_list
+    df.to_csv('D:/WWLLN/Yearly_slope.csv')
+
+
 
 
 if __name__ == '__main__':
     main()
 
-    #
-    # df = pd.DataFrame({})
-    # years_list = list(yearly_slope.keys())
-    # slope_list = list(yearly_slope.values())
-    # df['Years'] = years_list
-    # df['Slope'] = slope_list
-    # df.to_csv('D:/WWLLN/Yearly_slope.csv')
+
 
 
 
