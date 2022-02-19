@@ -55,18 +55,18 @@ def get_united_df(files_list):
 def get_united_df_line(df):
     data = []
     for date, time, long, lat in zip(df.Date, df.Time, df.Long, df.Lat):
-        if -5 <= long < 6.34:
-            calc_lat1 = 0.382 * long + 36.922
+        if -4.43 <= long < 6.35:
+            calc_lat1 = 0.382 * long + 36.93
             if calc_lat1 -0.5 < lat < calc_lat1 + 0.5:
                 data.append([date, time, long, lat])
 
-        if 6.34 <= long < 18.76:
-            calc_lat2 = -0.391 * long + 41.830
+        if 6.35 <= long < 17.13:
+            calc_lat2 = -0.403 * long + 41.92
             if calc_lat2 -0.5 < lat < calc_lat2 + 0.5:
                 data.append([date, time, long, lat])
 
-        if 18.76 <= long <= 38:
-            calc_lat3 = -0.074 * long + 35.884
+        if 17.13 <= long <= 34.84:
+            calc_lat3 = -0.14 * long + 37.34
             if calc_lat3 -0.5 < lat < calc_lat3 + 0.5:
                 data.append([date, time, long, lat])
 
@@ -133,7 +133,7 @@ def main():
     raw_df = get_united_df(file_list)
     united_df = get_united_df_line(raw_df)
     width, value_dict, ticks = get_values_dict(united_df)
-    # draw_plot(width, value_dict, ticks)
+    draw_plot(width, value_dict, ticks)
 
 
 
