@@ -75,7 +75,7 @@ def get_all_polygons():
 
 def get_points_inside_med(monthly_df_dict):
     med_poly, majorca_poly, corsica_poly, sardinia_poly, sicily_poly, peleponnese_poly, crete_poly, cyprus_poly, rhodes_poly, kios_lesbos_poly = get_all_polygons()
-
+    num_points = 0
     all_years_points = {}
     for year in list(monthly_df_dict.keys()):
         months = monthly_df_dict[year]
@@ -89,10 +89,11 @@ def get_points_inside_med(monthly_df_dict):
                     if majorca_poly.contains(point) is False and corsica_poly.contains(point) is False and sardinia_poly.contains(point) is False and sicily_poly.contains(point) is False and peleponnese_poly.contains(point) is False and crete_poly.contains(point) is False and cyprus_poly.contains(point) is False and rhodes_poly.contains(point) is False and kios_lesbos_poly.contains(point) is False:
                         data = (long, lat, energy)
                         month_data.append(data)
+                        num_points += 1
             months_points[month] = month_data
         print(f'finished {year}')
         all_years_points[year] = months_points
-    return all_years_points
+    return all_years_points, num_points
 
 
 def get_3vars_plot_per_month(month_data, long_points_med, lat_points_med):
@@ -174,7 +175,7 @@ def get_alk_plot(mean_array, lat_list, long_list):
     min_alk = round(2.462 * 974.658)
     max_alk = round(2.873 * 974.658)
     levels = np.linspace(min_alk, max_alk, 10)
-    alk_plot = plt.contourf(long_list, lat_list, mean_array[0], alpha=1, cmap=cmap, levels=levels, zorder=0, linewidths=1)
+    alk_plot = plt.contourf(long_list, lat_list, mean_array[0], alpha=1, cmap=cmap, levels=levels, zorder=0)
     ticks = np.linspace(min_alk, max_alk, 5, endpoint=True)
     cb2 = plt.colorbar(alk_plot, ticks= ticks, shrink=0.55)
     cb2.ax.set_title('\u03BC' + 'mol' '/ Kg\n', fontsize=14)
@@ -193,7 +194,8 @@ def get_alk_plot(mean_array, lat_list, long_list):
 
 
 def get_nparr_from_csv():
-    total_sum_file = 'D:/WWLLN-Intensity/Validation CSV/total_mean/sum/total_total_sum.csv'
+    # total_sum_file = 'D:/WWLLN-Intensity/Validation CSV/total_mean/sum/total_total_sum.csv'
+    total_sum_file = 'D:/WWLLN-Intensity/Validation CSV/count/normed.csv'
     total_sum = pd.read_csv(total_sum_file)
     total_sum = total_sum.to_numpy()
     total_sum = np.where(total_sum < 2000000, np.nan, total_sum)

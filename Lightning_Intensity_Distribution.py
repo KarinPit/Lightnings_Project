@@ -147,6 +147,7 @@ def get_all_polygons():
 def get_points_inside_med(monthly_df_dict):
     med_poly, majorca_poly, corsica_poly, sardinia_poly, sicily_poly, peleponnese_poly, crete_poly, cyprus_poly, rhodes_poly, kios_lesbos_poly = get_all_polygons()
 
+    # num_points = 0
     all_years_points = {}
     for year in list(monthly_df_dict.keys()):
         months = monthly_df_dict[year]
@@ -160,9 +161,11 @@ def get_points_inside_med(monthly_df_dict):
                     if majorca_poly.contains(point) is False and corsica_poly.contains(point) is False and sardinia_poly.contains(point) is False and sicily_poly.contains(point) is False and peleponnese_poly.contains(point) is False and crete_poly.contains(point) is False and cyprus_poly.contains(point) is False and rhodes_poly.contains(point) is False and kios_lesbos_poly.contains(point) is False:
                         data = (long, lat, energy)
                         month_data.append(data)
+                        # num_points += 1
             months_points[month] = month_data
         print(f'finished {year}')
         all_years_points[year] = months_points
+        # print(num_points)
     return all_years_points
 
 
@@ -183,7 +186,8 @@ def get_3vars_plot_per_month(month_data, long_points_med, lat_points_med):
 
     plot_3vars_sum = binned_statistic_2d(longs, lats, energies, statistic= 'sum', bins=[long_bins, lat_bins])
     plot_3vars_mean = binned_statistic_2d(longs, lats, energies, statistic= np.nanmean, bins=[long_bins, lat_bins])
-    return plot_3vars_sum, plot_3vars_mean, longs, lats, energies, long_bins, lat_bins
+    plot_3vars_count = binned_statistic_2d(longs, lats, energies, statistic='count', bins=[long_bins, lat_bins])
+    return plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins
 
 
 def read_mat_files():
@@ -217,7 +221,7 @@ def get_energy_plot_sum_single(year, all_years_points):
 
     for month in list(all_years_points[year]):
         data = all_years_points[year][month]
-        plot_3vars_sum, plot_3vars_mean, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(data, long_points_med, lat_points_med)
+        plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(data, long_points_med, lat_points_med)
         total_longs += longs
         total_lats += lats
         total_energies += energies
@@ -285,7 +289,7 @@ def get_energy_plot_mean_single(year, all_years_points):
 
     for month in list(all_years_points[year]):
         data = all_years_points[year][month]
-        plot_3vars_sum, plot_3vars_mean, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(data, long_points_med, lat_points_med)
+        plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(data, long_points_med, lat_points_med)
 
         if month == 'Dec':
             imshow_mean = ax0.imshow(plot_3vars_mean.statistic.T, origin='lower', cmap=cmap,  extent=[min(long_points_med), max(long_points_med), min(lat_points_med), max(lat_points_med)])
@@ -349,20 +353,23 @@ def get_energy_plot_sum(year, all_years_points):
     dec_array = []
     jan_array = []
     feb_array = []
+    num_array = []
 
     for month in list(all_years_points[year]):
         data = all_years_points[year][month]
-        plot_3vars_sum, plot_3vars_mean, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(data, long_points_med, lat_points_med)
+        plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(data, long_points_med, lat_points_med)
 
         if month == 'Dec':
             mean_array = np.nan_to_num(plot_3vars_sum.statistic)
             dec_array.append(mean_array)
             array_list.append(mean_array)
 
+
         if month == 'Jan':
             mean_array = np.nan_to_num(plot_3vars_sum.statistic)
             jan_array.append(mean_array)
             array_list.append(mean_array)
+
 
         if month == 'Feb':
             mean_array = np.nan_to_num(plot_3vars_sum.statistic)
@@ -370,7 +377,6 @@ def get_energy_plot_sum(year, all_years_points):
             array_list.append(mean_array)
 
     total_mean_array = np.sum(array_list, axis=0)
-
     return dec_array, jan_array, feb_array, total_mean_array
 
 
@@ -383,7 +389,7 @@ def get_energy_plot_mean(year, all_years_points):
 
     for month in list(all_years_points[year]):
         data = all_years_points[year][month]
-        plot_3vars_sum, plot_3vars_mean, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(data, long_points_med, lat_points_med)
+        plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(data, long_points_med, lat_points_med)
 
         if month == 'Dec':
             mean_array = np.nan_to_num(plot_3vars_mean.statistic)
