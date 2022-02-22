@@ -175,8 +175,6 @@ def main():
     # plt.show()
 
 
-
-
     # imshow = plt.imshow(plot_3vars_sum.statistic.T, origin='lower', extent= [min(line_data.Long), max(line_data.Long), min(line_data.Lat), max(line_data.Lat)])
     # plt.show()
     # width, value_dict, ticks = get_values_dict(line_data)
