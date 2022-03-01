@@ -40,6 +40,7 @@ def get_sum_files_list(dir):
             files = files + dir_files
     return files
 
+
 def get_united_df(files_list):
     united_df = pd.DataFrame({})
     fields = ['Date', 'Time', 'Long', 'Lat']
