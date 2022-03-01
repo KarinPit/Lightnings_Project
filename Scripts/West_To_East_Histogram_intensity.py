@@ -4,6 +4,7 @@ import matplotlib as mpl
 import numpy as np
 import os
 from scipy.stats import binned_statistic_2d
+from scipy import stats
 
 
 def get_years_path():
@@ -36,8 +37,8 @@ def get_year_files_dict(year_paths):
     all_files = {}
     for year in year_paths:
         year_name = year[-7:]
-        if year == 'D:/WWLLN-Intensity/DJF2009-10':
-        # if year != 'D:/WWLLN-Intensity/DJF2020-21':
+        # if year == 'D:/WWLLN-Intensity/DJF2009-10':
+        if year != 'D:/WWLLN-Intensity/DJF2020-21':
             dec_files = []
             jan_files = []
             feb_files = []
@@ -59,20 +60,20 @@ def get_year_df_dict(all_files):
     all_years_df = {}
     for year in all_files:
         months = list(all_files[year].keys())
-        months_df = {}
+
+        data = []
         for month in months:
             files = all_files[year][month]
             fields = ['Date', 'Long', 'Lat', 'Energy_J']
-            data = []
+
             for file in files:
                 df = pd.read_csv(file, delimiter=',', names=['Date', 'Time', 'Lat', 'Long', 'Resid', 'Nstn', 'Energy_J', 'Energy_Uncertainty', 'Nstn_Energy'], usecols=fields)
                 df = df[(df.Long > -6) & (df.Long < 36)]
                 df = df[(df.Lat > 30) & (df.Lat < 46)]
                 for date, long, lat, energy in zip(df.Date, df.Long, df.Lat, df.Energy_J):
                     data.append([date, long, lat, energy])
-            month_df = pd.DataFrame(data, columns=fields)
-            month_df.drop_duplicates(['Date', 'Long', 'Lat', 'Energy_J'], keep='first', inplace=True)
-            months_df[month] = month_df
+        months_df = pd.DataFrame(data, columns=fields)
+        months_df.drop_duplicates(['Date', 'Long', 'Lat', 'Energy_J'], keep='first', inplace=True)
         all_years_df[year] = months_df
     return all_years_df
 
@@ -148,38 +149,83 @@ def draw_plot(width, value_dict, ticks):
     plt.show()
 
 
+def get_slope(x, y):
+    slope, intercept, r_value, p_value, std_err_bad = stats.linregress(x, y)
+    std_err = np.std(y, ddof=1) / np.sqrt((np.size(y)))
+    return slope, intercept, std_err
+
+
 def main():
     years = get_years_path()
     all_years_files = get_year_files_dict(years)
     all_years_dfs = get_year_df_dict(all_years_files)
-    data = []
+
+    line_data = {}
     for year in all_years_dfs:
-        months = list(all_years_dfs[year].keys())
-        for month in months:
-            month_data = all_years_dfs[year][month]
-            for date, long, lat, energy in zip(month_data.Date, month_data.Long, month_data.Lat, month_data.Energy_J):
-                data.append([date, long, lat, energy])
+        line_df = get_united_df_line(all_years_dfs[year])
+        line_data[year] = line_df
 
-    united_df = pd.DataFrame(data, columns = ['Date', 'Long', 'Lat', 'Energy_J'])
-    line_data = get_united_df_line(united_df)
-    plot_3vars_sum = binned_statistic_2d(line_data.Long, line_data.Lat, line_data.Energy, statistic=np.nansum, bins=[10, 10])
-    light_sum = plot_3vars_sum.statistic
-    longs = plot_3vars_sum.x_edge
-    lats = plot_3vars_sum.y_edge
+    yearly_slopes = {}
+    for year in line_data:
+        data = line_data[year]
+        x = data.Long
+        y = data.Energy
+        slope, intercept, std_err = get_slope(x, y)
+        yearly_slopes[year] = [slope, intercept, std_err]
 
-    print(longs)
-    print(lats)
-    print(light_sum)
-    # print(len(light_sum), len(longs), len(lats))
-    # plt.scatter(longs, lats, s=light_sum)
-    # plt.show()
+    # plt.bar(list(yearly_slopes.keys()), )
+
+
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+    # def get_year_df_dict(all_files):
+    #     all_years_df = {}
+    #     for year in all_files:
+    #         months = list(all_files[year].keys())
+    #         months_df = {}
+    #         for month in months:
+    #             files = all_files[year][month]
+    #             fields = ['Date', 'Long', 'Lat', 'Energy_J']
+    #             data = []
+    #             for file in files:
+    #                 df = pd.read_csv(file, delimiter=',',
+    #                                  names=['Date', 'Time', 'Lat', 'Long', 'Resid', 'Nstn', 'Energy_J',
+    #                                         'Energy_Uncertainty', 'Nstn_Energy'], usecols=fields)
+    #                 df = df[(df.Long > -6) & (df.Long < 36)]
+    #                 df = df[(df.Lat > 30) & (df.Lat < 46)]
+    #                 for date, long, lat, energy in zip(df.Date, df.Long, df.Lat, df.Energy_J):
+    #                     data.append([date, long, lat, energy])
+    #             month_df = pd.DataFrame(data, columns=fields)
+    #             month_df.drop_duplicates(['Date', 'Long', 'Lat', 'Energy_J'], keep='first', inplace=True)
+    #             months_df[month] = month_df
+    #         all_years_df[year] = months_df
+    #     return all_years_df
+
+
+    # data = []
+    # for year in all_years_dfs:
+    #     months = list(all_years_dfs[year].keys())
+    #     for month in months:
+    #         month_data = all_years_dfs[year][month]
+    #         for date, long, lat, energy in zip(month_data.Date, month_data.Long, month_data.Lat, month_data.Energy_J):
+    #             data.append([date, long, lat, energy])
+    #
+    # united_df = pd.DataFrame(data, columns = ['Date', 'Long', 'Lat', 'Energy_J'])
+    # line_data = get_united_df_line(united_df)
+    # plot_3vars_sum = binned_statistic_2d(line_data.Long, line_data.Lat, line_data.Energy, statistic=np.nansum, bins=[10, 10])
+    # light_sum = plot_3vars_sum.statistic
+    # longs = plot_3vars_sum.x_edge
+    # lats = plot_3vars_sum.y_edge
+
+
 
 
     # imshow = plt.imshow(plot_3vars_sum.statistic.T, origin='lower', extent= [min(line_data.Long), max(line_data.Long), min(line_data.Lat), max(line_data.Lat)])
     # plt.show()
     # width, value_dict, ticks = get_values_dict(line_data)
     # draw_plot(width, value_dict, ticks)
-
-
-if __name__ == '__main__':
-    main()

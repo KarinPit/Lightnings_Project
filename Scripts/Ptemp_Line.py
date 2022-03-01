@@ -119,7 +119,7 @@ def get_long_lats_med():
     return long_points_med, lat_points_med, islands_coords_dict
 
 
-def get_ptemp_plot(mean_array, lat_list, long_list):
+def get_ptemp_plot(mean_array, long_list, lat_list):
     cmap = cm.get_cmap('YlOrRd')
     min_ptemp = 8
     max_ptemp = 22
