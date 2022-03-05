@@ -3,6 +3,7 @@ from shapely import geometry
 import math
 import os
 import scipy.io
+from scipy.stats import binned_statistic
 from scipy.stats import binned_statistic_2d
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -40,7 +41,7 @@ def get_year_files_dict(year_paths):
     all_files = {}
     for year in year_paths:
         year_name = year[-7:]
-        if year != 'D:/WWLLN-Intensity/DJF2020-21':
+        if year == 'D:/WWLLN-Intensity/DJF2009-10':
             dec_files = []
             jan_files = []
             feb_files = []
@@ -171,7 +172,7 @@ def get_points_inside_med(monthly_df_dict):
 
 
 def get_array_mean():
-    nc_file = 'D:/WWLLN-Intensity/Validation CSV/alk.nc'
+    nc_file = 'D:/WWLLN-Intensity/Validation CSV/info/alk.nc'
     alk_ds = xr.open_dataset(nc_file)
     pandas_times = alk_ds.time.to_pandas()
     array_list = []
@@ -180,6 +181,7 @@ def get_array_mean():
         if i.month in [1, 2, 3]:
             ptimes_list = pandas_times.to_list()
             index = ptimes_list.index(i)
+
             alk_stime = alk_ds.talk.isel(time=index)
             np_arr = alk_stime.to_numpy()
             np_arr = np.nan_to_num(np_arr, nan=0)
@@ -192,22 +194,48 @@ def get_array_mean():
     return mean_array_micromol, lat_list, long_list
 
 
-def get_3vars_plot_per_month(month_data):
+def get_3vars_plot_per_month(year, month, month_data):
     mean_array_micromol, lat_list, long_list = get_array_mean()
-    longs = []
-    lats = []
-    energies = []
-    for tup in month_data:
-        long = tup[0]
-        lat = tup[1]
-        energy = tup[2]
-        longs.append(long)
-        lats.append(lat)
-        energies.append(energy)
+    lats = month_data.Lat.tolist()
+    longs = month_data.Long.tolist()
+    energies = month_data.Energy_J.tolist()
 
-    plot_3vars_sum = binned_statistic_2d(longs, lats, energies, statistic= 'sum', bins=[long_list, lat_list])
-    plot_3vars_mean = binned_statistic_2d(longs, lats, energies, statistic= np.nanmean, bins=[long_list, lat_list])
-    plot_3vars_count = binned_statistic_2d(longs, lats, energies, statistic='count', bins=[long_list, lat_list])
+    plot_3vars_mean = binned_statistic_2d(longs, lats, energies, statistic= 'mean', bins=[long_list, lat_list])
+    df = pd.DataFrame(plot_3vars_mean.statistic)
+    df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/info/Summary/mean/{year}{month}_mean.csv')
+
+    plot_3vars_sum = binned_statistic(longs, energies, statistic= 'sum', bins=long_list)
+    # plot_3vars_mean = binned_statistic(longs, energies, statistic= 'mean', bins=long_list)
+    plot_3vars_count = binned_statistic(longs, energies, statistic= 'count', bins=long_list)
+    # df['longs'] = plot_3vars_mean.bin_edges[0:-1]
+    # df['mean'] = plot_3vars_mean.statistic
+
+
+
+
+
+
+    # longs = []
+    # lats = []
+    # energies = []
+    # for tup in month_data:
+        # long = tup[0]
+        # lat = tup[1]
+        # energy = tup[2]
+        # longs.append(long)
+        # lats.append(lat)
+        # energies.append(energy)
+
+
+
+    # df['longs'] = longs
+    # df['energy'] = energies
+    # df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/info/Summary/mean/{year}{month}.csv')
+
+    # plot_3vars_sum = binned_statistic_2d(longs, lats, energies, statistic= 'sum', bins=[long_list, lat_list])
+    # plot_3vars_mean = binned_statistic_2d(longs, lats, energies, statistic= np.nanmean, bins=[long_list, lat_list])
+    # plot_3vars_count = binned_statistic_2d(longs, lats, energies, statistic='count', bins=[long_list, lat_list])
+
     return plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_list, lat_list
 
 
@@ -263,7 +291,7 @@ def get_energy_plot_sum_single(year, all_years_points):
 
     for month in list(all_years_points[year]):
         data = all_years_points[year][month]
-        plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(data)
+        plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(year, month, data)
         total_longs += longs
         total_lats += lats
         total_energies += energies
@@ -331,7 +359,7 @@ def get_energy_plot_mean_single(year, all_years_points):
 
     for month in list(all_years_points[year]):
         data = all_years_points[year][month]
-        plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(data)
+        plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(year, month, data)
 
         if month == 'Dec':
             imshow_mean = ax0.imshow(plot_3vars_mean.statistic.T, origin='lower', cmap=cmap,  extent=[min(long_points_med), max(long_points_med), min(lat_points_med), max(lat_points_med)])
@@ -399,7 +427,7 @@ def get_energy_plot_sum(year, all_years_points):
 
     for month in list(all_years_points[year]):
         data = all_years_points[year][month]
-        plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(data)
+        plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(year, month, data)
 
         if month == 'Dec':
             mean_array = np.nan_to_num(plot_3vars_sum.statistic)
@@ -431,7 +459,7 @@ def get_energy_plot_mean(year, all_years_points):
 
     for month in list(all_years_points[year]):
         data = all_years_points[year][month]
-        plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(data)
+        plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins = get_3vars_plot_per_month(year, month, data)
 
         if month == 'Dec':
             mean_array = np.nan_to_num(plot_3vars_mean.statistic)
@@ -588,41 +616,56 @@ def main():
     years = get_years_path()
     all_years_files = get_year_files_dict(years)
     all_years_dfs = get_year_df_dict(all_years_files)
-    all_years_points = get_points_inside_med(all_years_dfs)
-    dec_array_mean = []
-    jan_array_mean = []
-    feb_array_mean = []
-    total_array_mean = []
 
-    for year in list(all_years_points.keys()):
-        dec_array, jan_array, feb_array, total_array = get_energy_plot_sum(year, all_years_points)
-        # dec_array, jan_array, feb_array, total_array = get_energy_plot_mean(year, all_years_points)
-        dec_array_mean.append(dec_array)
-        jan_array_mean.append(jan_array)
-        feb_array_mean.append(feb_array)
-        total_array_mean.append(total_array)
-        print(f'finished statistics for {year}')
+    for year in all_years_dfs:
+        months_dict = all_years_dfs[year]
+        for month in months_dict:
+            data = months_dict[month]
+            plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_list, lat_list = get_3vars_plot_per_month(year, month, data)
 
-    dec_sum, jan_sum, feb_sum, total_sum = get_energy_plot_sum_total(dec_array_mean, jan_array_mean, feb_array_mean, total_array_mean)
+
+
+
+
+
+
+    #
+    #
+    # all_years_points = get_points_inside_med(all_years_dfs)
+    # dec_array_mean = []
+    # jan_array_mean = []
+    # feb_array_mean = []
+    # total_array_mean = []
+    #
+    # for year in list(all_years_points.keys()):
+    #     # dec_array, jan_array, feb_array, total_array = get_energy_plot_sum(year, all_years_points)
+    #     dec_array, jan_array, feb_array, total_array = get_energy_plot_mean(year, all_years_points)
+    #     dec_array_mean.append(dec_array)
+    #     jan_array_mean.append(jan_array)
+    #     feb_array_mean.append(feb_array)
+    #     total_array_mean.append(total_array)
+    #     print(f'finished statistics for {year}')
+    #
+    # dec_sum, jan_sum, feb_sum, total_sum = get_energy_plot_sum_total(dec_array_mean, jan_array_mean, feb_array_mean, total_array_mean)
     # dec_mean, jan_mean, feb_mean, total_mean = get_energy_plot_mean_total(dec_array_mean, jan_array_mean, feb_array_mean, total_array_mean)
-
-    df_dec = pd.DataFrame(dec_sum[0])
-    df_dec.to_csv(f'D:/WWLLN-Intensity/Validation CSV/Summary/dec_total_sum.csv')
-    df_jan = pd.DataFrame(jan_sum[0])
-    df_jan.to_csv(f'D:/WWLLN-Intensity/Validation CSV/Summary/jan_total_sum.csv')
-    df_feb = pd.DataFrame(feb_sum[0])
-    df_feb.to_csv(f'D:/WWLLN-Intensity/Validation CSV/Summary/feb_total_sum.csv')
-    df_total = pd.DataFrame(total_sum)
-    df_total.to_csv(f'D:/WWLLN-Intensity/Validation CSV/Summary/total_total_sum.csv')
-
-    # df_dec = pd.DataFrame(dec_mean[0])
-    # df_dec.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/dec_total_mean.csv')
-    # df_jan = pd.DataFrame(jan_mean[0])
-    # df_jan.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/jan_total_mean.csv')
-    # df_feb = pd.DataFrame(feb_mean[0])
-    # df_feb.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/feb_total_mean.csv')
-    # df_total = pd.DataFrame(total_mean)
-    # df_total.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/total_total_mean.csv')
+    #
+    # df_dec = pd.DataFrame(dec_sum[0])
+    # df_dec.to_csv(f'D:/WWLLN-Intensity/Validation CSV/Summary/dec_total_sum.csv')
+    # df_jan = pd.DataFrame(jan_sum[0])
+    # df_jan.to_csv(f'D:/WWLLN-Intensity/Validation CSV/Summary/jan_total_sum.csv')
+    # df_feb = pd.DataFrame(feb_sum[0])
+    # df_feb.to_csv(f'D:/WWLLN-Intensity/Validation CSV/Summary/feb_total_sum.csv')
+    # df_total = pd.DataFrame(total_sum)
+    # df_total.to_csv(f'D:/WWLLN-Intensity/Validation CSV/Summary/total_total_sum.csv')
+    #
+    # # df_dec = pd.DataFrame(dec_mean[0])
+    # # df_dec.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/dec_total_mean.csv')
+    # # df_jan = pd.DataFrame(jan_mean[0])
+    # # df_jan.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/jan_total_mean.csv')
+    # # df_feb = pd.DataFrame(feb_mean[0])
+    # # df_feb.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/feb_total_mean.csv')
+    # # df_total = pd.DataFrame(total_mean)
+    # # df_total.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/total_total_mean.csv')
 
 if __name__ == '__main__':
     main()
