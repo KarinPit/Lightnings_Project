@@ -179,12 +179,15 @@ def get_long_mean(df, examp_longs, examp_lats):
     lats = df.Lat
     hist = stats.binned_statistic(longs, energy, statistic= np.nansum, bins=examp_longs)
     # hist = stats.binned_statistic_2d(longs, lats, energy, statistic= np.nanmean, bins=[examp_longs, examp_lats])
-    # stats_data = hist.statistic.T
     stats_data = hist.statistic
-    # hist_numbers = hist.binnumber
-    # print(hist_numbers)
-    # print(hist.bin_edges)
     return stats_data
+
+
+def get_quartile(df_vals):
+    quart_1 = np.percentile(df_vals, 25)
+    quart_2 = np.percentile(df_vals, 50)
+    quart_3 = np.percentile(df_vals, 75)
+    return quart_1, quart_2, quart_3
 
 
 def main():
@@ -192,8 +195,11 @@ def main():
     years = get_years_path()
     all_years_files = get_year_files_dict(years)
     all_years_dfs = get_year_df_dict(all_years_files)
+
     for year in all_years_dfs:
+        writer = pd.ExcelWriter(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/Quartiles/{year}.xlsx', engine='xlsxwriter')
         months_dict = all_years_dfs[year]
+
         for month in months_dict:
             # create the df and the longs and total sum columns
             data = months_dict[month]
@@ -202,29 +208,30 @@ def main():
             df['Longs'] = examp_longs[0:-1]
             df['All_Data'] = stat_data
             # df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/{year}-{month}_1d.csv')
+
             # calculate percentage of each threshold
             num_all_data = len(df)
-            first_threshold_perc = len(df[(df.All_Data > 100000)]) / num_all_data * 100
-            second_threshold_perc = len(df[(df.All_Data > 500000)]) / num_all_data * 100
-            third_threshold_perc = len(df[(df.All_Data > 1000000)]) / num_all_data * 100
-            fourth_threshold_perc = len(df[(df.All_Data > 1500000)]) / num_all_data * 100
-            fifth_threshold_perc = len(df[(df.All_Data > 2000000)]) / num_all_data * 100
-
+            first_threshold_perc = round(len(df[(df.All_Data > 100000)]) / num_all_data * 100, 2)
+            second_threshold_perc = round(len(df[(df.All_Data > 500000)]) / num_all_data * 100, 2)
+            third_threshold_perc = round(len(df[(df.All_Data > 1000000)]) / num_all_data * 100, 2)
+            fourth_threshold_perc = round(len(df[(df.All_Data > 1500000)]) / num_all_data * 100, 2)
+            fifth_threshold_perc = round(len(df[(df.All_Data > 2000000)]) / num_all_data * 100, 2)
             print(year, month, first_threshold_perc, second_threshold_perc, third_threshold_perc, fourth_threshold_perc, fifth_threshold_perc)
+
             # create columns for each threshold with the percentage and save to csv
-            df[f'first_threshold'] = df.All_Data
-            df[f'second_threshold'] = df.All_Data
-            df[f'third_threshold'] = df.All_Data
-            df[f'fourth_threshold'] = df.All_Data
-            df[f'fifth_threshold'] = df.All_Data
+            df['first_quart'] = df.All_Data
+            df['second_quart'] = df.All_Data
+            df['third_quart'] = df.All_Data
 
-            df.loc[df.first_threshold < 100000, 'first_threshold'] = np.nan
-            df.loc[df.second_threshold < 500000, 'second_threshold'] = np.nan
-            df.loc[df.third_threshold < 1000000, 'third_threshold'] = np.nan
-            df.loc[df.fourth_threshold < 1500000, 'fourth_threshold'] = np.nan
-            df.loc[df.fifth_threshold < 2000000, 'fifth_threshold'] = np.nan
+            # calc third quartile values
+            quart_1, quart_2, quart_3 = get_quartile(df.All_Data)
+            df.loc[df.first_quart < quart_1, 'first_quart'] = np.nan
+            df.loc[df.second_quart < quart_2, 'second_quart'] = np.nan
+            df.loc[df.third_quart < quart_3, 'third_quart'] = np.nan
 
-            df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/{year}-{month}.csv')
+            df.to_excel(writer, sheet_name=month)
+        writer.save()
+            # df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/QUARTILES_{year}-{month}.csv')
 
 
 if __name__ == '__main__':
@@ -256,11 +263,48 @@ if __name__ == '__main__':
 
 
 
-
-
-
-
-
+    # def main():
+    #     examp_longs, examp_lats = get_longs_lats_dataset()
+    #     years = get_years_path()
+    #     all_years_files = get_year_files_dict(years)
+    #     all_years_dfs = get_year_df_dict(all_years_files)
+    #     for year in all_years_dfs:
+    #         months_dict = all_years_dfs[year]
+    #         for month in months_dict:
+    #             # create the df and the longs and total sum columns
+    #             data = months_dict[month]
+    #             stat_data = get_long_mean(data, examp_longs, examp_lats)
+    #             df = pd.DataFrame({})
+    #             df['Longs'] = examp_longs[0:-1]
+    #             df['All_Data'] = stat_data
+    #             # df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/{year}-{month}_1d.csv')
+    #
+    #             # calculate percentage of each threshold
+    #             num_all_data = len(df)
+    #             first_threshold_perc = len(df[(df.All_Data > 100000)]) / num_all_data * 100
+    #             second_threshold_perc = len(df[(df.All_Data > 500000)]) / num_all_data * 100
+    #             third_threshold_perc = len(df[(df.All_Data > 1000000)]) / num_all_data * 100
+    #             fourth_threshold_perc = len(df[(df.All_Data > 1500000)]) / num_all_data * 100
+    #             fifth_threshold_perc = len(df[(df.All_Data > 2000000)]) / num_all_data * 100
+    #             # print(year, month, first_threshold_perc, second_threshold_perc, third_threshold_perc, fourth_threshold_perc, fifth_threshold_perc)
+    #
+    #             # create columns for each threshold with the percentage and save to csv
+    #             df[f'first_threshold'] = df.All_Data
+    #             df[f'second_threshold'] = df.All_Data
+    #             df[f'third_threshold'] = df.All_Data
+    #             df[f'fourth_threshold'] = df.All_Data
+    #             df[f'fifth_threshold'] = df.All_Data
+    #
+    #             # calc third quartile values
+    #             quart_1, quart_2, quart_3 = get_quartile(df.All_Data)
+    #
+    #             df.loc[df.first_threshold < 100000, 'first_threshold'] = np.nan
+    #             df.loc[df.second_threshold < 500000, 'second_threshold'] = np.nan
+    #             df.loc[df.third_threshold < 1000000, 'third_threshold'] = np.nan
+    #             df.loc[df.fourth_threshold < 1500000, 'fourth_threshold'] = np.nan
+    #             df.loc[df.fifth_threshold < 2000000, 'fifth_threshold'] = np.nan
+    #
+    #             # df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/{year}-{month}.csv')
 
     # # create df and columns for each threshold
     # df = pd.read_csv('D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/2009-10-Dec_1d.csv')
