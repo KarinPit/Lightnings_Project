@@ -5,7 +5,7 @@ import os
 
 
 def get_longs_lats_dataset():
-    examp_nc_file = 'D:/WWLLN-Intensity/Validation CSV/ph.nc'
+    examp_nc_file = 'D:/WWLLN-Intensity/Validation CSV/info/ph.nc'
     examp_ds = xr.open_dataset(examp_nc_file)
     examp_longs = examp_ds.longitude.to_numpy().tolist()
     examp_lats = examp_ds.latitude.to_numpy().tolist()

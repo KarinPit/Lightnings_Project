@@ -2,8 +2,14 @@ import pandas as pd
 import os
 import xarray as xr
 from shapely import geometry
+import scipy.stats as stats
 import math
 import numpy as np
+import seaborn as sns
+import scipy as sp
+from scipy.stats import gaussian_kde
+import matplotlib.pyplot as plt
+from scipy.stats import norm
 
 
 def get_long_lats_med():
@@ -53,6 +59,21 @@ def get_med_polygon(long_points_med, lat_points_med):
     med_line = geometry.LineString(zip(long_points_med, lat_points_med))
     med_poly = geometry.Polygon(med_line)
     return med_poly
+
+
+def get_all_polygons():
+    long_points_med, lat_points_med, islands_coords_dict = get_long_lats_med()
+    med_poly = get_med_polygon(long_points_med, lat_points_med)
+    majorca_poly = get_island_polygon('Majorca', islands_coords_dict)
+    corsica_poly = get_island_polygon('Corsica', islands_coords_dict)
+    sardinia_poly = get_island_polygon('Sardinia', islands_coords_dict)
+    sicily_poly = get_island_polygon('Sicily', islands_coords_dict)
+    peleponnese_poly = get_island_polygon('Peleponnese', islands_coords_dict)
+    crete_poly = get_island_polygon('Crete', islands_coords_dict)
+    cyprus_poly = get_island_polygon('Cyprus', islands_coords_dict)
+    rhodes_poly = get_island_polygon('Rhodes', islands_coords_dict)
+    kios_lesbos_poly = get_island_polygon('Kios_Lesbos', islands_coords_dict)
+    return med_poly, majorca_poly, corsica_poly, sardinia_poly, sicily_poly, peleponnese_poly, crete_poly, cyprus_poly, rhodes_poly, kios_lesbos_poly
 
 
 def get_years_path():
@@ -118,8 +139,8 @@ def get_year_df_dict(all_files):
             data = []
             for file in files:
                 df = pd.read_csv(file, delimiter=',', names=['Date', 'Time', 'Lat', 'Long', 'Resid', 'Nstn', 'Energy_J', 'Energy_Uncertainty', 'Nstn_Energy'], usecols=fields)
-                df = df[(df.Long > 32) & (df.Long < 36.3)]
-                df = df[(df.Lat > 30.18) & (df.Lat < 45.98)]
+                df = df[(df.Long > -6) & (df.Long < 36)]
+                df = df[(df.Lat > 30) & (df.Lat < 46)]
                 for date, long, lat, energy in zip(df.Date, df.Long, df.Lat, df.Energy_J):
                     point = geometry.Point(long, lat)
                     if med_poly.contains(point):
@@ -139,62 +160,163 @@ def get_year_df_dict(all_files):
     return all_years_df
 
 
-def get_all_polygons():
-    long_points_med, lat_points_med, islands_coords_dict = get_long_lats_med()
-    med_poly = get_med_polygon(long_points_med, lat_points_med)
-    majorca_poly = get_island_polygon('Majorca', islands_coords_dict)
-    corsica_poly = get_island_polygon('Corsica', islands_coords_dict)
-    sardinia_poly = get_island_polygon('Sardinia', islands_coords_dict)
-    sicily_poly = get_island_polygon('Sicily', islands_coords_dict)
-    peleponnese_poly = get_island_polygon('Peleponnese', islands_coords_dict)
-    crete_poly = get_island_polygon('Crete', islands_coords_dict)
-    cyprus_poly = get_island_polygon('Cyprus', islands_coords_dict)
-    rhodes_poly = get_island_polygon('Rhodes', islands_coords_dict)
-    kios_lesbos_poly = get_island_polygon('Kios_Lesbos', islands_coords_dict)
-    return med_poly, majorca_poly, corsica_poly, sardinia_poly, sicily_poly, peleponnese_poly, crete_poly, cyprus_poly, rhodes_poly, kios_lesbos_poly
-
-
-def get_united_df(df_dict):
-    months = list(df_dict.keys())
-    united_df = pd.DataFrame({})
-    for month in months:
-        df = df_dict[month]
-        united_df = pd.concat([united_df, df])
-    return united_df
-
-
 def get_longs_lats_dataset():
-    examp_nc_file = 'D:/WWLLN-Intensity/Validation CSV/ph.nc'
+    examp_nc_file = 'D:/WWLLN-Intensity/Validation CSV/info/ph.nc'
     examp_ds = xr.open_dataset(examp_nc_file)
     examp_longs = examp_ds.longitude.to_numpy().tolist()
     examp_lats = examp_ds.latitude.to_numpy().tolist()
     return examp_longs, examp_lats
 
 
+def get_long_sum(df, examp_longs):
+    longs = df.Long
+    energy = df.Energy_J
+    hist = stats.binned_statistic(longs, energy, statistic=np.nansum, bins=examp_longs)
+    # hist = stats.binned_statistic_2d(longs, lats, energy, statistic= np.nanmean, bins=[examp_longs, examp_lats])
+    stats_data = hist.statistic
+    x = hist.bin_edges[:-1]
+    return stats_data, x
+
+
+def get_long_kde(df, examp_longs):
+    df2 = df.groupby('Long').sum()
+    energy = df2.Energy_J
+    print(df2)
+    # sns.kdeplot(df.Long, df.Energy_J)
+    # plt.show()
+
+
 def main():
+    examp_longs, examp_lats = get_longs_lats_dataset()
     years = get_years_path()
     all_years_files = get_year_files_dict(years)
-    yearly_df_dict = get_year_df_dict(all_years_files)
-    writer = pd.ExcelWriter(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/East_Med_Data/All_Data_Intens.xlsx', engine='xlsxwriter')
+    all_years_dfs = get_year_df_dict(all_years_files)
 
-    for year in yearly_df_dict:
-        df = pd.DataFrame({})
-        months_dict = yearly_df_dict[year]
-        for month in months_dict:
-            month_data = months_dict[month]
-            count = len(month_data)
-            area_size = 837088.74  # squared km
-            average_count = count / area_size
-            sum_intens = month_data['Energy_J'].sum()
-            mean_intens = month_data['Energy_J'].mean()
-            df[f'{month}_Count'] = [count]
-            df[f'{month}_Avg_Count'] = [average_count]
-            df[f'{month}_Sum_Intensity'] = [sum_intens]
-            df[f'{month}_Mean_Intensity'] = [mean_intens]
+    for year in all_years_dfs:
+        months = all_years_dfs[year]
+        for month in months:
+            month_df = months[month]
+            stats_data, x = get_long_sum(month_df, examp_longs)
 
-        df.to_excel(writer, sheet_name=year)
-    writer.save()
+
+
+            # stat_df = pd.DataFrame({})
+            # stat_df['longs'] = x
+            # stat_df['stats'] = stats_data
+            # sns.kdeplot(stat_df)
+            # plt.show()
+            # plt.bar(x, stats_data)
+            # plt.show()
+
+
+
+
+
+
+
+
+
+            # sns.jointplot(data=month_df.Energy_J, x=month_df.Long, y=month_df.Energy_J, kind='hist')
+            # plt.show()
+            # stats_data, x = get_long_sum(month_df, examp_longs)
+            # plt.bar(x, stats_data)
+            # sns.histplot(data=month_df.Energy_J, x=month_df.Long, stat="density", kde=True, common_norm=False)
+            # sns.jointplot(data=month_df.Energy_J, x=month_df.Long, y=month_df.Energy_J)
+            # plt.show()
+            # stats_data, x = get_long_sum(month_df, examp_longs)
+            # sns.histplot(x=month_df.Long, y=month_df.Energy_J)
+            # sns.histplot(data=month_df, x="Long", kde=True)
+
+            # sns.kdeplot(stats_data)
+            # sns.distplot(stats_data, hist=False, rug=True,
+            #              axlabel="Longs",
+            #              kde_kws=dict(label="kde"),
+            #              rug_kws=dict(height=.2, linewidth=2, color="C1", label="data"))
+            # plt.bar(x, stats_data)
+            # plt.show()
 
 
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def get_long_lat_index(long_bins, lat_bins, long_points, lat_points):
+#     long_index = []
+#     lat_index = []
+#
+#     for long in long_points:
+#         index = long_bins.index(long)
+#         long_index.append(index)
+#     for lat in lat_points:
+#         index = lat_bins.index(lat)
+#         lat_index.append(index)
+#
+#     return long_index, lat_index
+#
+#
+# def get_intensity_by_index(df, long_index, lat_index, long_bins, lat_bins):
+#     data = []
+#     for long, lat in zip(long_index, lat_index):
+#         # lat = str(lat)
+#         intensity_val = df[lat][long]
+#         data.append(intensity_val)
+#
+#     longs = []
+#     lats = []
+#
+#     for index in long_index:
+#         val = long_bins[index]
+#         longs.append(val)
+#     for index in lat_index:
+#         val = lat_bins[index]
+#         lats.append(val)
+#
+#     df = pd.DataFrame({})
+#     df['longs'] = longs
+#     df['lats'] = lats
+#     df['Intensity'] = data
+#     return df

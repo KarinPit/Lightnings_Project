@@ -6,25 +6,52 @@ import matplotlib.cm as cm
 import math
 
 
-def get_array_mean():
-    nc_file = 'D:/WWLLN-Intensity/Validation CSV/ptemp.nc'
-    ptemp_ds = xr.open_dataset(nc_file)
-    pandas_times = ptemp_ds.time.to_pandas()
-    array_list = []
-    for i in pandas_times:
-        file_name = str(i.year) + '-' + str(i.month)
-        if i.month in [1, 2, 3]:
-            ptimes_list = pandas_times.to_list()
-            index = ptimes_list.index(i)
-            ptemp_stime = ptemp_ds.thetao.isel(time=index)
-            np_arr = ptemp_stime.to_numpy()
-            # np_arr = np.nan_to_num(np_arr, nan=0)
-            array_list.append(np_arr)
+# def get_array_mean():
+#     nc_file = 'D:/WWLLN-Intensity/Validation CSV/info/ph.nc'
+#     ph_ds = xr.open_dataset(nc_file)
+#     pandas_times = ph_ds.time.to_pandas()
+#     array_list = []
+#     for i in pandas_times:
+#         file_name = str(i.year) + '-' + str(i.month)
+#         if i.month in [1, 2, 3]:
+#             ptimes_list = pandas_times.to_list()
+#             index = ptimes_list.index(i)
+#             ph_stime = ph_ds.ph.isel(time=index)
+#             np_arr = ph_stime.to_numpy()
+#             # np_arr = np.nan_to_num(np_arr, nan=0)
+#             array_list.append(np_arr)
+#
+#     mean_array = np.nanmean(array_list, axis=0)
+#     lat_list = ph_ds.latitude.data.tolist()
+#     long_list = ph_ds.longitude.data.tolist()
+#     return mean_array, lat_list, long_list
 
-    mean_array = np.nanmean(array_list, axis=0)
-    lat_list = ptemp_ds.lat.data.tolist()
-    long_list = ptemp_ds.lon.data.tolist()
-    return mean_array, lat_list, long_list
+
+def get_array_mean():
+    nc_file = 'D:/WWLLN-Intensity/Validation CSV/info/ph.nc'
+    ph_ds = xr.open_dataset(nc_file)
+    pandas_times = ph_ds.time.to_pandas()
+    years = [i for i in range(2010, 2021)]
+    years_array_dict = {}
+
+    for year in years:
+        array_list = []
+        for i in pandas_times:
+            if year == i.year:
+                file_name = str(i.year) + '-' + str(i.month)
+                if i.month in [1, 2, 3]:
+                    ptimes_list = pandas_times.to_list()
+                    index = ptimes_list.index(i)
+                    alk_stime = ph_ds.ph.isel(time=index)
+                    np_arr = alk_stime.to_numpy()
+                    # np_arr = np.nan_to_num(np_arr, nan=0)
+                    array_list.append(np_arr)
+        mean_array = np.nanmean(array_list, axis=0)
+        years_array_dict[year] = mean_array
+
+    lat_list = ph_ds.latitude.data.tolist()
+    long_list = ph_ds.longitude.data.tolist()
+    return years_array_dict, lat_list, long_list
 
 
 def get_points_on_line(lat_list, long_list):
@@ -69,7 +96,7 @@ def get_points_on_line(lat_list, long_list):
     return long_points, lat_points, long_index, lat_index
 
 
-def get_ptemp_values(long_index, lat_index, mean_array):
+def get_ph_values(long_index, lat_index, mean_array):
     df = pd.DataFrame(mean_array[0])
     data = []
     for long, lat in zip(long_index, lat_index):
@@ -78,12 +105,13 @@ def get_ptemp_values(long_index, lat_index, mean_array):
     return data
 
 
-def export_ptemp_on_line(long_points, ptemp_data):
+def export_ph_on_line(long_points, alk_data):
     df = pd.DataFrame({})
     df['longs'] = long_points
-    df['PTemp'] = ptemp_data
-    df2 = df.groupby('longs').mean()
-    df2.to_csv('D:/WWLLN-Intensity/Validation CSV/data/ptemp_on_line.csv')
+    df['ph'] = alk_data
+    return df
+    # df2 = df.groupby('longs').mean()
+    # df2.to_csv('D:/WWLLN-Intensity/Validation CSV/info/data/ph_on_line_new.csv')
 
 
 def get_long_lats_med():
@@ -119,15 +147,15 @@ def get_long_lats_med():
     return long_points_med, lat_points_med, islands_coords_dict
 
 
-def get_ptemp_plot(mean_array, long_list, lat_list):
-    cmap = cm.get_cmap('YlOrRd')
-    min_ptemp = 8
-    max_ptemp = 22
-    levels = np.linspace(min_ptemp, max_ptemp, 10)
-    ptemp_plot = plt.contourf(long_list, lat_list, mean_array[0], alpha=1, cmap=cmap, levels=levels, zorder=0)
-    ticks = np.linspace(min_ptemp, max_ptemp, 5, endpoint=True)
-    cb2 = plt.colorbar(ptemp_plot, ticks= ticks, shrink=0.55)
-    cb2.ax.set_title('Ptemp', fontsize=14)
+def get_ph_plot(mean_array, lat_list, long_list):
+    cmap = cm.get_cmap('PuBu')
+    min_ph = 8.05
+    max_ph = 8.2
+    levels = np.linspace(min_ph, max_ph, 10)
+    alk_plot = plt.contourf(long_list, lat_list, mean_array[0], alpha=1, cmap=cmap, levels=levels, zorder=0)
+    ticks = np.linspace(min_ph, max_ph, 5, endpoint=True)
+    cb2 = plt.colorbar(alk_plot, ticks= ticks, shrink=0.55)
+    cb2.ax.set_title('PH', fontsize=14)
     # cb2.set_label('\u03BC' + 'mol' '/ Kg', fontsize=14, labelpad=30)
 
     long_points_med, lat_points_med, islands_dict = get_long_lats_med()
@@ -136,13 +164,26 @@ def get_ptemp_plot(mean_array, long_list, lat_list):
 
 
 def main():
-    mean_array, lat_list, long_list = get_array_mean()
+    years_array_dict, lat_list, long_list = get_array_mean()
     long_points, lat_points, long_index, lat_index = get_points_on_line(lat_list, long_list)
-    ptemp_data = get_ptemp_values(long_index, lat_index, mean_array)
-    get_ptemp_plot(mean_array, lat_list, long_list)
-    export_ptemp_on_line(long_points, ptemp_data)
-    # plt.plot(long_points, lat_points)
-    # plt.show()
+
+    writer = pd.ExcelWriter('D:/WWLLN-Intensity/Validation CSV/info/data/pH_on_line.xlsx', engine='xlsxwriter')
+    for year in years_array_dict:
+        year_array = years_array_dict[year]
+        alk_data = get_ph_values(long_index, lat_index, year_array)
+        df = export_ph_on_line(long_points, alk_data)
+        df = df[(df.longs >= 16.5)]
+        df2 = df.groupby('longs').mean()
+        df2.to_excel(writer, sheet_name=str(year))
+    writer.save()
+
+    # mean_array, lat_list, long_list = get_array_mean()
+    # long_points, lat_points, long_index, lat_index = get_points_on_line(lat_list, long_list)
+    # ph_data = get_ph_values(long_index, lat_index, mean_array)
+    # get_ph_plot(mean_array, lat_list, long_list)
+    # export_ph_on_line(long_points, ph_data)
+    # # plt.plot(long_points, lat_points)
+    # # plt.show()
 
 
 

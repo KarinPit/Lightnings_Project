@@ -6,25 +6,52 @@ import matplotlib.cm as cm
 import math
 
 
+# def get_array_mean():
+#     nc_file = 'D:/WWLLN-Intensity/Validation CSV/info/sal.nc'
+#     sal_ds = xr.open_dataset(nc_file)
+#     pandas_times = sal_ds.time.to_pandas()
+#     array_list = []
+#     for i in pandas_times:
+#         file_name = str(i.year) + '-' + str(i.month)
+#         if i.month in [1, 2, 3]:
+#             stimes_list = pandas_times.to_list()
+#             index = stimes_list.index(i)
+#             sal_stime = sal_ds.so.isel(time=index)
+#             np_arr = sal_stime.to_numpy()
+#             # np_arr = np.nan_to_num(np_arr, nan=0)
+#             array_list.append(np_arr)
+#
+#     mean_array = np.nanmean(array_list, axis=0)
+#     lat_list = sal_ds.lat.data.tolist()
+#     long_list = sal_ds.lon.data.tolist()
+#     return mean_array, lat_list, long_list
+
+
 def get_array_mean():
-    nc_file = 'D:/WWLLN-Intensity/Validation CSV/sal.nc'
+    nc_file = 'D:/WWLLN-Intensity/Validation CSV/info/sal.nc'
     sal_ds = xr.open_dataset(nc_file)
     pandas_times = sal_ds.time.to_pandas()
-    array_list = []
-    for i in pandas_times:
-        file_name = str(i.year) + '-' + str(i.month)
-        if i.month in [1, 2, 3]:
-            stimes_list = pandas_times.to_list()
-            index = stimes_list.index(i)
-            sal_stime = sal_ds.so.isel(time=index)
-            np_arr = sal_stime.to_numpy()
-            # np_arr = np.nan_to_num(np_arr, nan=0)
-            array_list.append(np_arr)
+    years = [i for i in range(2010, 2021)]
+    years_array_dict = {}
 
-    mean_array = np.nanmean(array_list, axis=0)
+    for year in years:
+        array_list = []
+        for i in pandas_times:
+            if year == i.year:
+                file_name = str(i.year) + '-' + str(i.month)
+                if i.month in [1, 2, 3]:
+                    ptimes_list = pandas_times.to_list()
+                    index = ptimes_list.index(i)
+                    alk_stime = sal_ds.so.isel(time=index)
+                    np_arr = alk_stime.to_numpy()
+                    # np_arr = np.nan_to_num(np_arr, nan=0)
+                    array_list.append(np_arr)
+        mean_array = np.nanmean(array_list, axis=0)
+        years_array_dict[year] = mean_array
+
     lat_list = sal_ds.lat.data.tolist()
     long_list = sal_ds.lon.data.tolist()
-    return mean_array, lat_list, long_list
+    return years_array_dict, lat_list, long_list
 
 
 def get_points_on_line(lat_list, long_list):
@@ -82,8 +109,8 @@ def export_sal_on_line(long_points, sal_data):
     df = pd.DataFrame({})
     df['longs'] = long_points
     df['sal'] = sal_data
-    df2 = df.groupby('longs').mean()
-    df2.to_csv('D:/WWLLN-Intensity/Validation CSV/data/sal_on_line.csv')
+    return df
+    # df2.to_csv('D:/WWLLN-Intensity/Validation CSV/info/data/sal_on_line.csv')
 
 
 def get_long_lats_med():
@@ -136,13 +163,27 @@ def get_sal_plot(mean_array, lat_list, long_list):
 
 
 def main():
-    mean_array, lat_list, long_list = get_array_mean()
+    years_array_dict, lat_list, long_list = get_array_mean()
     long_points, lat_points, long_index, lat_index = get_points_on_line(lat_list, long_list)
-    sal_data = get_sal_values(long_index, lat_index, mean_array)
-    get_sal_plot(mean_array, lat_list, long_list)
-    export_sal_on_line(long_points, sal_data)
-    # plt.plot(long_points, lat_points)
-    # plt.show()
+
+    writer = pd.ExcelWriter('D:/WWLLN-Intensity/Validation CSV/info/data/sal_on_line.xlsx', engine='xlsxwriter')
+    for year in years_array_dict:
+        year_array = years_array_dict[year]
+        alk_data = get_sal_values(long_index, lat_index, year_array)
+        df = export_sal_on_line(long_points, alk_data)
+        df = df[(df.longs >= 16.5)]
+        df2 = df.groupby('longs').mean()
+        df2.to_excel(writer, sheet_name=str(year))
+    writer.save()
+
+
+    # mean_array, lat_list, long_list = get_array_mean()
+    # long_points, lat_points, long_index, lat_index = get_points_on_line(lat_list, long_list)
+    # sal_data = get_sal_values(long_index, lat_index, mean_array)
+    # get_sal_plot(mean_array, lat_list, long_list)
+    # export_sal_on_line(long_points, sal_data)
+    # # plt.plot(long_points, lat_points)
+    # # plt.show()
 
 
 

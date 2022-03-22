@@ -5,25 +5,32 @@ import numpy as np
 
 
 def get_array_mean():
-    nc_file = 'D:/WWLLN-Intensity/Validation CSV/alk.nc'
+    nc_file = 'D:/WWLLN-Intensity/Validation CSV/info/alk.nc'
     alk_ds = xr.open_dataset(nc_file)
     pandas_times = alk_ds.time.to_pandas()
-    array_list = []
-    for i in pandas_times:
-        file_name = str(i.year) + '-' + str(i.month)
-        if i.month in [1, 2, 3]:
-            ptimes_list = pandas_times.to_list()
-            index = ptimes_list.index(i)
-            alk_stime = alk_ds.talk.isel(time=index)
-            np_arr = alk_stime.to_numpy()
-            # np_arr = np.nan_to_num(np_arr, nan=0)
-            array_list.append(np_arr)
+    years = [i for i in range(2010, 2021)]
+    years_array_dict = {}
 
-    mean_array = np.nanmean(array_list, axis=0)
-    mean_array_micromol = mean_array * 974.658
+    for year in years:
+        array_list = []
+        for i in pandas_times:
+            if year == i.year:
+                file_name = str(i.year) + '-' + str(i.month)
+                if i.month in [1, 2, 3]:
+                    ptimes_list = pandas_times.to_list()
+                    index = ptimes_list.index(i)
+                    alk_stime = alk_ds.talk.isel(time=index)
+                    np_arr = alk_stime.to_numpy()
+                    # np_arr = np.nan_to_num(np_arr, nan=0)
+                    array_list.append(np_arr)
+        mean_array = np.nanmean(array_list, axis=0)
+        mean_array_micromol = mean_array * 974.658
+        years_array_dict[year] = mean_array_micromol
+
     lat_list = alk_ds.latitude.data.tolist()
     long_list = alk_ds.longitude.data.tolist()
-    return mean_array_micromol, lat_list, long_list
+    return years_array_dict, lat_list, long_list
+
 
 def get_points_on_line(lat_list, long_list):
     long_points = []
@@ -80,17 +87,27 @@ def export_alk_on_line(long_points, alk_data):
     df = pd.DataFrame({})
     df['longs'] = long_points
     df['alkalinity'] = alk_data
-    df2 = df.groupby('longs').mean()
-    df2.to_csv('D:/WWLLN-Intensity/Validation CSV/data/alk_on_line_new.csv')
+    # df2.to_csv(f'D:/WWLLN-Intensity/Validation CSV/info/data/alk_on_line_{year}.csv')
+    return df
 
 
 def main():
-    mean_array_micromol, lat_list, long_list = get_array_mean()
+    years_array_dict, lat_list, long_list = get_array_mean()
     long_points, lat_points, long_index, lat_index = get_points_on_line(lat_list, long_list)
-    alk_data = get_alk_values(long_index, lat_index, mean_array_micromol)
-    export_alk_on_line(long_points, alk_data)
-    # plt.plot(long_points, lat_points)
-    # plt.show()
+
+    writer = pd.ExcelWriter('D:/WWLLN-Intensity/Validation CSV/info/data/alk_on_line.xlsx', engine='xlsxwriter')
+    for year in years_array_dict:
+        year_array = years_array_dict[year]
+        alk_data = get_alk_values(long_index, lat_index, year_array)
+        df = export_alk_on_line(long_points, alk_data, year)
+        df = df[(df.longs >= 16.5)]
+        df2 = df.groupby('longs').mean()
+        df2.to_excel(writer, sheet_name=str(year))
+    writer.save()
+
+    #
+    # # plt.plot(long_points, lat_points)
+    # # plt.show()
 
 
 

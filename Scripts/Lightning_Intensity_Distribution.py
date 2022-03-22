@@ -41,7 +41,8 @@ def get_year_files_dict(year_paths):
     all_files = {}
     for year in year_paths:
         year_name = year[-7:]
-        if year == 'D:/WWLLN-Intensity/DJF2009-10':
+        if year != 'D:/WWLLN-Intensity/DJF2020-21':
+        # if year == 'D:/WWLLN-Intensity/DJF2009-10':
             dec_files = []
             jan_files = []
             feb_files = []
@@ -78,7 +79,7 @@ def get_year_df_dict(all_files):
             month_df.drop_duplicates(['Date', 'Long', 'Lat', 'Energy_J'], keep='first', inplace=True)
             months_df[month] = month_df
         all_years_df[year] = months_df
-
+        print(f'finished {year}')
     return all_years_df
 
 
@@ -165,7 +166,7 @@ def get_points_inside_med(monthly_df_dict):
                         month_data.append(data)
                         # num_points += 1
             months_points[month] = month_data
-        print(f'finished {year}')
+        print(f'finished checking points for {year}')
         all_years_points[year] = months_points
         # print(num_points)
     return all_years_points
@@ -196,68 +197,22 @@ def get_array_mean():
 
 def get_3vars_plot_per_month(year, month, month_data):
     mean_array_micromol, lat_list, long_list = get_array_mean()
-    lats = month_data.Lat.tolist()
-    longs = month_data.Long.tolist()
-    energies = month_data.Energy_J.tolist()
+    month_data = month_data[(month_data.Energy_J > 2000000)]
+    if len(month_data) != 0:
+        print(month_data)
+        lats = month_data.Lat.tolist()
+        longs = month_data.Long.tolist()
+        energies = month_data.Energy_J.tolist()
 
-    plot_3vars_mean = binned_statistic_2d(longs, lats, energies, statistic= 'mean', bins=[long_list, lat_list])
-    df = pd.DataFrame(plot_3vars_mean.statistic)
-    df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/info/Summary/mean/{year}{month}_mean.csv')
+        plot_3vars_mean = binned_statistic_2d(longs, lats, energies, statistic= 'count', bins=[long_list, lat_list])
+        df = pd.DataFrame(plot_3vars_mean.statistic)
+        df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/info/count/over_2M/{year}{month}_int.csv')
 
-    plot_3vars_sum = binned_statistic(longs, energies, statistic= 'sum', bins=long_list)
-    # plot_3vars_mean = binned_statistic(longs, energies, statistic= 'mean', bins=long_list)
-    plot_3vars_count = binned_statistic(longs, energies, statistic= 'count', bins=long_list)
-    # df['longs'] = plot_3vars_mean.bin_edges[0:-1]
-    # df['mean'] = plot_3vars_mean.statistic
-
-
-
-
-
-
-    # longs = []
-    # lats = []
-    # energies = []
-    # for tup in month_data:
-        # long = tup[0]
-        # lat = tup[1]
-        # energy = tup[2]
-        # longs.append(long)
-        # lats.append(lat)
-        # energies.append(energy)
-
-
-
-    # df['longs'] = longs
-    # df['energy'] = energies
-    # df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/info/Summary/mean/{year}{month}.csv')
-
-    # plot_3vars_sum = binned_statistic_2d(longs, lats, energies, statistic= 'sum', bins=[long_list, lat_list])
-    # plot_3vars_mean = binned_statistic_2d(longs, lats, energies, statistic= np.nanmean, bins=[long_list, lat_list])
-    # plot_3vars_count = binned_statistic_2d(longs, lats, energies, statistic='count', bins=[long_list, lat_list])
-
-    return plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_list, lat_list
-
-
-# def get_3vars_plot_per_month(month_data, long_points_med, lat_points_med):
-#     longs = []
-#     lats = []
-#     energies = []
-#     for tup in month_data:
-#         long = tup[0]
-#         lat = tup[1]
-#         energy = tup[2]
-#         longs.append(long)
-#         lats.append(lat)
-#         energies.append(energy)
-#
-#     long_bins = np.arange(min(long_points_med), max(long_points_med), 0.045).tolist()
-#     lat_bins = np.arange(min(lat_points_med), max(lat_points_med), 0.045).tolist()
-#
-#     plot_3vars_sum = binned_statistic_2d(longs, lats, energies, statistic= 'sum', bins=[long_bins, lat_bins])
-#     plot_3vars_mean = binned_statistic_2d(longs, lats, energies, statistic= np.nanmean, bins=[long_bins, lat_bins])
-#     plot_3vars_count = binned_statistic_2d(longs, lats, energies, statistic='count', bins=[long_bins, lat_bins])
-#     return plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_bins, lat_bins
+        plot_3vars_sum = binned_statistic(longs, energies, statistic= 'sum', bins=long_list)
+        # plot_3vars_mean = binned_statistic(longs, energies, statistic= 'mean', bins=long_list)
+        plot_3vars_count = binned_statistic(longs, energies, statistic= 'count', bins=long_list)
+        # df['longs'] = plot_3vars_mean.bin_edges[0:-1]
+        # df['mean'] = plot_3vars_mean.statistic
 
 
 def read_mat_files():
@@ -612,16 +567,123 @@ def get_energy_plot_mean_total(dec_array_mean, jan_array_mean, feb_array_mean, t
     return dec_mean, jan_mean, feb_mean, total_mean
 
 
-def main():
-    years = get_years_path()
-    all_years_files = get_year_files_dict(years)
-    all_years_dfs = get_year_df_dict(all_years_files)
+def get_united_df_count(united_df):
+    plot_3vars_mean = binned_statistic_2d(united_df.Longs, united_df.Lats, united_df.Energy_J, statistic='count', bins=[467, 178])
+    stat_df = pd.DataFrame(plot_3vars_mean.statistic)
+    stat_df = stat_df.replace(to_replace=0, value=np.nan)
+    stat_df.to_csv('D:/WWLLN-Intensity/Validation CSV/info/count/over_2M/stats.csv')
+    return stat_df
 
-    for year in all_years_dfs:
-        months_dict = all_years_dfs[year]
-        for month in months_dict:
-            data = months_dict[month]
-            plot_3vars_sum, plot_3vars_mean, plot_3vars_count, longs, lats, energies, long_list, lat_list = get_3vars_plot_per_month(year, month, data)
+
+def get_energy_plot_count_2m(united_df):
+    long_points_med, lat_points_med, islands_coords_dict = get_long_lats_med()
+    fig, axes = plt.subplots(figsize=(12, 6))
+    axes.scatter(united_df.Longs, united_df.Lats, color='red', marker=".")
+    axes.plot(long_points_med, lat_points_med, color='k')
+    for island in islands_coords_dict:
+        coords = islands_coords_dict[island]
+        longs_island = coords[0]
+        lats_island = coords[1]
+        axes.plot(longs_island, lats_island, color='k')
+    axes.set_xlim(xmin=-6, xmax=36.5)
+    axes.set_ylim(ymin=30, ymax=46)
+    plt.xticks(fontsize= 18)
+    plt.yticks(fontsize= 18)
+    csfont = {'fontname': 'Times New Roman (Headings CS)'}
+    plt.xlabel('Longitude', fontsize=20, **csfont, labelpad=30)
+    plt.ylabel('Latitude', fontsize=20, **csfont, labelpad=30)
+    plt.show()
+    # imshow = axes.imshow(united_df.T, origin='lower', cmap=cmap, extent=[-4.4, 35.95, 31.16, 45.55])
+    # # imshow.set_clim(vmin=1, vmax=3)
+
+
+def main():
+    df = pd.read_csv('D:/WWLLN-Intensity/Validation CSV/info/count/over_2M/All_year_Int_DF.csv')
+    df = df.loc[:, df.columns != 'Unnamed: 0']
+    df_1m = df.loc[df.Energy_J > 1000000]
+    df_1m.to_csv('D:/WWLLN-Intensity/Validation CSV/info/count/over_2M/All_year_Int_DF_1m.csv')
+    # get_energy_plot_count_2m(df_1m)
+
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    # df = pd.read_csv('D:/WWLLN-Intensity/Validation CSV/info/count/over_2M/All_year_Int_2M_Count.csv')
+    # # df = pd.read_csv('D:/WWLLN-Intensity/Validation CSV/info/count/total_total_count.csv')
+    # get_energy_plot_count_2m(df)
+
+    # years = get_years_path()
+    # all_years_files = get_year_files_dict(years)
+    # all_years_dfs = get_year_df_dict(all_years_files)
+    # all_years_points_inside_med = get_points_inside_med(all_years_dfs)
+    # longs = []
+    # lats = []
+    # energies = []
+    # for year in all_years_points_inside_med:
+    #     months_dict = all_years_points_inside_med[year]
+    #     for month in months_dict:
+    #         month_data = months_dict[month]
+    #         for tup in month_data:
+    #             long = tup[0]
+    #             lat = tup[1]
+    #             energy = tup[2]
+    #             longs.append(long)
+    #             lats.append(lat)
+    #             energies.append(energy)
+    #
+    # united_df = pd.DataFrame({})
+    # united_df['Longs'] = longs
+    # united_df['Lats'] = lats
+    # united_df['Energy_J'] = energies
+    # united_df.to_csv('D:/WWLLN-Intensity/Validation CSV/info/count/over_2M/All_year_Int_2M_Count_DF.csv')
+
+
+    # def get_year_sum():
+    #     pass
+        # main_dir = 'D:/WWLLN-Intensity/Validation CSV/info/count/over_2M/'
+        # files = os.listdir(main_dir)
+        # years = [str(i) for i in range(2009,2020)]
+        # year_dict = {}
+        # for year in years:
+        #     months_data = []
+        #     for file in files:
+        #         full_path = os.path.join(main_dir, file)
+        #         full_path = full_path.replace('\\', '/')
+        #         file_year = full_path[-18:-14]
+        #         file_month = full_path[-11:-8]
+        #         if year == file_year:
+        #             if file_month == 'Dec':
+        #                 df = pd.read_csv(full_path)
+        #                 df = df.replace(to_replace=0, value=np.nan)
+        #                 months_data.append(months_data)
+        #             else:
+        #                 old_year = full_path[-18:-11]
+        #                 second_year = full_path[-13:-11]
+        #                 new_year = str(int(year) + 1) + '-' + str(int(second_year) + 1)
+        #                 full_path = full_path.replace(old_year, new_year)
+        #                 print(full_path)
+        #             df = pd.read_csv(full_path)
+        #             df = df.replace(to_replace=0, value=np.nan)
+        #             months_data.append(months_data)
+        # print(months_data)
+
 
 
 
@@ -666,6 +728,3 @@ def main():
     # # df_feb.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/feb_total_mean.csv')
     # # df_total = pd.DataFrame(total_mean)
     # # df_total.to_csv(f'D:/WWLLN-Intensity/Validation CSV/total_mean/total_total_mean.csv')
-
-if __name__ == '__main__':
-    main()

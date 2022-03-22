@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 import os
 import xarray as xr
@@ -85,8 +86,8 @@ def get_year_files_dict(year_paths):
     all_files = {}
     for year in year_paths:
         year_name = year[-7:]
-        # if year != 'D:/WWLLN-Intensity/DJF2020-21':
-        if year == 'D:/WWLLN-Intensity/DJF2009-10':
+        if year != 'D:/WWLLN-Intensity/DJF2020-21':
+        # if year == 'D:/WWLLN-Intensity/DJF2009-10':
             dec_files = []
             jan_files = []
             feb_files = []
@@ -118,7 +119,7 @@ def get_year_df_dict(all_files):
             data = []
             for file in files:
                 df = pd.read_csv(file, delimiter=',', names=['Date', 'Time', 'Lat', 'Long', 'Resid', 'Nstn', 'Energy_J', 'Energy_Uncertainty', 'Nstn_Energy'], usecols=fields)
-                df = df[(df.Long > 32) & (df.Long < 36.3)]
+                df = df[(df.Long > 16.5) & (df.Long < 36.3)]
                 df = df[(df.Lat > 30.18) & (df.Lat < 45.98)]
                 for date, long, lat, energy in zip(df.Date, df.Long, df.Lat, df.Energy_J):
                     point = geometry.Point(long, lat)
@@ -164,35 +165,53 @@ def get_united_df(df_dict):
 
 
 def get_longs_lats_dataset():
-    examp_nc_file = 'D:/WWLLN-Intensity/Validation CSV/ph.nc'
+    examp_nc_file = 'D:/WWLLN-Intensity/Validation CSV/info/ph.nc'
     examp_ds = xr.open_dataset(examp_nc_file)
     examp_longs = examp_ds.longitude.to_numpy().tolist()
     examp_lats = examp_ds.latitude.to_numpy().tolist()
     return examp_longs, examp_lats
 
 
+def get_line_df(df):
+    data = []
+    for date, long, lat, energy in zip(df.Date, df.Long, df.Lat, df.Energy_J):
+        if -4.43 <= long < 6.35:
+            calc_lat1 = 0.382 * long + 36.93
+            if calc_lat1 -0.5 < lat < calc_lat1 + 0.5:
+                data.append([date, long, lat, energy])
+
+        if 6.35 <= long < 17.13:
+            calc_lat2 = -0.403 * long + 41.92
+            if calc_lat2 -0.5 < lat < calc_lat2 + 0.5:
+                data.append([date, long, lat, energy])
+
+        if 17.13 <= long <= 34.84:
+            calc_lat3 = -0.14 * long + 37.34
+            if calc_lat3 -0.5 < lat < calc_lat3 + 0.5:
+                data.append([date, long, lat, energy])
+
+    line_df = pd.DataFrame(data, columns=['Date', 'Long', 'Lat', 'Energy_J'])
+    line_df.drop_duplicates(keep=False, inplace=True)
+    return line_df
+
+
 def main():
     years = get_years_path()
     all_years_files = get_year_files_dict(years)
     yearly_df_dict = get_year_df_dict(all_years_files)
-    writer = pd.ExcelWriter(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/East_Med_Data/All_Data_Intens.xlsx', engine='xlsxwriter')
 
+    writer = pd.ExcelWriter(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/Yearly_LFI_Line.xlsx', engine='xlsxwriter')
     for year in yearly_df_dict:
-        df = pd.DataFrame({})
-        months_dict = yearly_df_dict[year]
-        for month in months_dict:
-            month_data = months_dict[month]
-            count = len(month_data)
-            area_size = 837088.74  # squared km
-            average_count = count / area_size
-            sum_intens = month_data['Energy_J'].sum()
-            mean_intens = month_data['Energy_J'].mean()
-            df[f'{month}_Count'] = [count]
-            df[f'{month}_Avg_Count'] = [average_count]
-            df[f'{month}_Sum_Intensity'] = [sum_intens]
-            df[f'{month}_Mean_Intensity'] = [mean_intens]
-
-        df.to_excel(writer, sheet_name=year)
+        months = yearly_df_dict[year]
+        line_data = []
+        for month in months:
+            month_df = months[month]
+            df = get_line_df(month_df)
+            line_data.append(df)
+        line_df = pd.concat(line_data)
+        line_df = line_df[['Long', 'Energy_J']]
+        line_df = line_df.groupby('Long').mean()
+        line_df.to_excel(writer, sheet_name=year)
     writer.save()
 
 

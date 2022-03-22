@@ -6,7 +6,6 @@ import matplotlib.cm as cm
 from shapely import geometry
 import math
 from scipy.stats import binned_statistic_2d
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 
 def get_long_lats_med():
@@ -148,7 +147,7 @@ def get_energy_plot_mean(year, all_years_points):
 
 
 def get_array_mean():
-    nc_file = 'D:/WWLLN-Intensity/Validation CSV/alk.nc'
+    nc_file = 'D:/WWLLN-Intensity/Validation CSV/info/alk.nc'
     alk_ds = xr.open_dataset(nc_file)
     pandas_times = alk_ds.time.to_pandas()
     array_list = []
@@ -171,14 +170,14 @@ def get_array_mean():
 
 def get_alk_plot(mean_array, lat_list, long_list):
     # cmap = cm.get_cmap('YlGnBu')
-    cmap = cm.get_cmap('PuBu')
-    min_alk = round(2.462 * 974.658)
-    max_alk = round(2.873 * 974.658)
-    levels = np.linspace(min_alk, max_alk, 10)
-    alk_plot = plt.contourf(long_list, lat_list, mean_array[0], alpha=1, cmap=cmap, levels=levels, zorder=0)
-    ticks = np.linspace(min_alk, max_alk, 5, endpoint=True)
-    cb2 = plt.colorbar(alk_plot, ticks= ticks, shrink=0.55)
-    cb2.ax.set_title('\u03BC' + 'mol' '/ Kg\n', fontsize=14)
+    # cmap = cm.get_cmap('PuBu')
+    # min_alk = round(2.462 * 974.658)
+    # max_alk = round(2.873 * 974.658)
+    # levels = np.linspace(min_alk, max_alk, 10)
+    # alk_plot = plt.contourf(long_list, lat_list, mean_array[0], alpha=1, cmap=cmap, levels=levels, zorder=0)
+    # ticks = np.linspace(min_alk, max_alk, 5, endpoint=True)
+    # cb2 = plt.colorbar(alk_plot, ticks= ticks, shrink=0.55)
+    # cb2.ax.set_title('\u03BC' + 'mol' '/ Kg\n', fontsize=14)
     # cb2.set_label('\u03BC' + 'mol' '/ Kg', fontsize=14, labelpad=30)
 
     long_points_med, lat_points_med, islands_dict = get_long_lats_med()
@@ -194,8 +193,8 @@ def get_alk_plot(mean_array, lat_list, long_list):
 
 
 def get_nparr_from_csv():
-    # total_sum_file = 'D:/WWLLN-Intensity/Validation CSV/total_mean/sum/total_total_sum.csv'
-    total_sum_file = 'D:/WWLLN-Intensity/Validation CSV/count/normed.csv'
+    total_sum_file = 'D:/WWLLN-Intensity/Validation CSV/info/total_mean/sum/total_total_sum.csv'
+    # total_sum_file = 'D:/WWLLN-Intensity/Validation CSV/count/normed.csv'
     total_sum = pd.read_csv(total_sum_file)
     total_sum = total_sum.to_numpy()
     total_sum = np.where(total_sum < 2000000, np.nan, total_sum)
@@ -230,15 +229,38 @@ def get_energy_plot_sum_total(total_sum, ax):
 
 def main():
     mean_array, lat_list, long_list = get_array_mean()
-    ax = get_alk_plot(mean_array, lat_list, long_list)
-    total_mean_light = get_nparr_from_csv()
-    get_energy_plot_sum_total(total_mean_light, ax)
-    plt.tight_layout()
-    plt.show()
+    # ax = get_alk_plot(mean_array, lat_list, long_list)
+    # total_mean_light = get_nparr_from_csv()
+    # get_energy_plot_sum_total(total_mean_light, ax)
+    # plt.tight_layout()
+    # plt.show()
 
 
 if __name__ == '__main__':
     main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

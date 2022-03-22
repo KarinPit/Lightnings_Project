@@ -72,6 +72,34 @@ def get_all_polygons():
     return med_poly, majorca_poly, corsica_poly, sardinia_poly, sicily_poly, peleponnese_poly, crete_poly, cyprus_poly, rhodes_poly, kios_lesbos_poly
 
 
+def get_points_on_line(longs, lats):
+    long_points = []
+    lat_points = []
+
+    for long in longs:
+        for lat in lats:
+
+            if -4.43 <= long < 6.35:
+                calc_lat1 = 0.382 * long + 36.93
+                if calc_lat1 - 0.5 < lat < calc_lat1 + 0.5:
+                    long_points.append(long)
+                    lat_points.append(lat)
+
+            if 6.35 <= long < 17.13:
+                calc_lat2 = -0.403 * long + 41.92
+                if calc_lat2 -0.5 < lat < calc_lat2 + 0.5:
+                    long_points.append(long)
+                    lat_points.append(lat)
+
+            if 17.13 <= long <= 34.84:
+                calc_lat3 = -0.14 * long + 37.34
+                if calc_lat3 -0.5 < lat < calc_lat3 + 0.5:
+                    long_points.append(long)
+                    lat_points.append(lat)
+
+    return long_points, lat_points
+
+
 def get_years_path():
     main_dir_path = 'D:/WWLLN-Intensity'
     years = []
@@ -164,74 +192,76 @@ def get_longs_lats_dataset():
     return examp_longs, examp_lats
 
 
-def get_data_stats(df, examp_longs, examp_lats):
-    longs = df.Long
-    lats = df.Lat
-    energy = df.Energy_J
-    plot_3vars_count = stats.binned_statistic_2d(longs, lats, energy, statistic= np.nanmean, bins=[examp_longs, examp_lats])
-    stats_data = plot_3vars_count.statistic
-    return stats_data
-
-
 def get_long_mean(df, examp_longs, examp_lats):
     longs = df.Long
     energy = df.Energy_J
     lats = df.Lat
-    hist = stats.binned_statistic(longs, energy, statistic= np.nansum, bins=examp_longs)
-    # hist = stats.binned_statistic_2d(longs, lats, energy, statistic= np.nanmean, bins=[examp_longs, examp_lats])
+    # hist = stats.binned_statistic(longs, energy, statistic=np.nansum, bins=examp_longs)
+    hist = stats.binned_statistic_2d(longs, lats, energy, statistic= np.nanmean, bins=[examp_longs, examp_lats])
     stats_data = hist.statistic
-    return stats_data
+    return stats_data, longs, lats
 
 
-def get_quartile(df_vals):
-    quart_1 = np.percentile(df_vals, 25)
-    quart_2 = np.percentile(df_vals, 50)
-    quart_3 = np.percentile(df_vals, 75)
-    return quart_1, quart_2, quart_3
+def get_long_lat_index(long_bins, lat_bins, long_points, lat_points):
+    long_index = []
+    lat_index = []
+
+    for long in long_points:
+        index = long_bins.index(long)
+        long_index.append(index)
+    for lat in lat_points:
+        index = lat_bins.index(lat)
+        lat_index.append(index)
+
+    return long_index, lat_index
+
+
+def get_intensity_by_index(df, long_index, lat_index, long_bins, lat_bins):
+    data = []
+    for long, lat in zip(long_index, lat_index):
+        # lat = str(lat)
+        intensity_val = df[lat][long]
+        data.append(intensity_val)
+
+    longs = []
+    lats = []
+
+    for index in long_index:
+        val = long_bins[index]
+        longs.append(val)
+    for index in lat_index:
+        val = lat_bins[index]
+        lats.append(val)
+
+    df = pd.DataFrame({})
+    df['longs'] = longs
+    df['lats'] = lats
+    df['Intensity'] = data
+    return df
 
 
 def main():
     examp_longs, examp_lats = get_longs_lats_dataset()
+    long_line_points, lat_line_points = get_points_on_line(examp_longs, examp_lats)
+    long_index, lat_index = get_long_lat_index(examp_longs, examp_lats, long_line_points, lat_line_points)
+
     years = get_years_path()
     all_years_files = get_year_files_dict(years)
     all_years_dfs = get_year_df_dict(all_years_files)
+    writer = pd.ExcelWriter(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/East_Med_Data/INT_LINE.xlsx', engine='xlsxwriter')
 
     for year in all_years_dfs:
-        writer = pd.ExcelWriter(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/Quartiles/{year}.xlsx', engine='xlsxwriter')
-        months_dict = all_years_dfs[year]
-
-        for month in months_dict:
-            # create the df and the longs and total sum columns
-            data = months_dict[month]
-            stat_data = get_long_mean(data, examp_longs, examp_lats)
-            df = pd.DataFrame({})
-            df['Longs'] = examp_longs[0:-1]
-            df['All_Data'] = stat_data
-            # df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/{year}-{month}_1d.csv')
-
-            # calculate percentage of each threshold
-            num_all_data = len(df)
-            first_threshold_perc = round(len(df[(df.All_Data > 100000)]) / num_all_data * 100, 2)
-            second_threshold_perc = round(len(df[(df.All_Data > 500000)]) / num_all_data * 100, 2)
-            third_threshold_perc = round(len(df[(df.All_Data > 1000000)]) / num_all_data * 100, 2)
-            fourth_threshold_perc = round(len(df[(df.All_Data > 1500000)]) / num_all_data * 100, 2)
-            fifth_threshold_perc = round(len(df[(df.All_Data > 2000000)]) / num_all_data * 100, 2)
-            print(year, month, first_threshold_perc, second_threshold_perc, third_threshold_perc, fourth_threshold_perc, fifth_threshold_perc)
-
-            # create columns for each threshold with the percentage and save to csv
-            df['first_quart'] = df.All_Data
-            df['second_quart'] = df.All_Data
-            df['third_quart'] = df.All_Data
-
-            # calc third quartile values
-            quart_1, quart_2, quart_3 = get_quartile(df.All_Data)
-            df.loc[df.first_quart < quart_1, 'first_quart'] = np.nan
-            df.loc[df.second_quart < quart_2, 'second_quart'] = np.nan
-            df.loc[df.third_quart < quart_3, 'third_quart'] = np.nan
-
-            df.to_excel(writer, sheet_name=month)
-        writer.save()
-            # df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/QUARTILES_{year}-{month}.csv')
+        months = all_years_dfs[year]
+        yearly_df = pd.DataFrame({})
+        yearly_df['Longs'] = examp_longs
+        for month in months:
+            month_df = months[month]
+            stats_data, longs, lats = get_long_mean(month_df, examp_longs, examp_lats)
+            stats_df = pd.DataFrame(stats_data)
+            line_df = get_intensity_by_index(stats_df, long_index, lat_index, examp_longs, examp_lats)
+            yearly_df[month] = line_df.Intensity
+        yearly_df.to_excel(writer, sheet_name=year)
+    writer.save()
 
 
 if __name__ == '__main__':
@@ -259,9 +289,63 @@ if __name__ == '__main__':
 
 
 
+    # for year in all_years_dfs:
+    #     writer = pd.ExcelWriter(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/Quartiles/{year}.xlsx', engine='xlsxwriter')
+    #     months_dict = all_years_dfs[year]
+    #
+    #     for month in months_dict:
+    #         # create the df and the longs and total sum columns
+    #         data = months_dict[month]
+    #         stat_data = get_long_mean(data, examp_longs, examp_lats)
+    #         df = pd.DataFrame({})
+    #         df['Longs'] = examp_longs[0:-1]
+    #         df['All_Data'] = stat_data
+    #         # df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/{year}-{month}_1d.csv')
+    #
+    #         # calculate percentage of each threshold
+    #         num_all_data = len(df)
+    #         first_threshold_perc = round(len(df[(df.All_Data > 100000)]) / num_all_data * 100, 2)
+    #         second_threshold_perc = round(len(df[(df.All_Data > 500000)]) / num_all_data * 100, 2)
+    #         third_threshold_perc = round(len(df[(df.All_Data > 1000000)]) / num_all_data * 100, 2)
+    #         fourth_threshold_perc = round(len(df[(df.All_Data > 1500000)]) / num_all_data * 100, 2)
+    #         fifth_threshold_perc = round(len(df[(df.All_Data > 2000000)]) / num_all_data * 100, 2)
+    #         print(year, month, first_threshold_perc, second_threshold_perc, third_threshold_perc, fourth_threshold_perc, fifth_threshold_perc)
+    #
+    #         # create columns for each threshold with the percentage and save to csv
+    #         df['first_quart'] = df.All_Data
+    #         df['second_quart'] = df.All_Data
+    #         df['third_quart'] = df.All_Data
+    #
+    #         # calc third quartile values
+    #         quart_1, quart_2, quart_3 = get_quartile(df.All_Data)
+    #         df.loc[df.first_quart < quart_1, 'first_quart'] = np.nan
+    #         df.loc[df.second_quart < quart_2, 'second_quart'] = np.nan
+    #         df.loc[df.third_quart < quart_3, 'third_quart'] = np.nan
+    #
+    #         df.to_excel(writer, sheet_name=month)
+    #     writer.save()
+    #         # df.to_csv(f'D:/WWLLN-Intensity/Validation CSV/all_med_sea_data_intens/QUARTILES_{year}-{month}.csv')
 
 
 
+    # def get_data_stats(df, examp_longs, examp_lats):
+    #     longs = df.Long
+    #     lats = df.Lat
+    #     energy = df.Energy_J
+    #     plot_3vars_count = stats.binned_statistic_2d(longs, lats, energy, statistic=np.nanmean,
+    #                                                  bins=[examp_longs, examp_lats])
+    #     stats_data = plot_3vars_count.statistic
+    #     return stats_data
+    #
+    #
+
+    #
+    #
+    # def get_quartile(df_vals):
+    #     quart_1 = np.percentile(df_vals, 25)
+    #     quart_2 = np.percentile(df_vals, 50)
+    #     quart_3 = np.percentile(df_vals, 75)
+    #     return quart_1, quart_2, quart_3
 
     # def main():
     #     examp_longs, examp_lats = get_longs_lats_dataset()

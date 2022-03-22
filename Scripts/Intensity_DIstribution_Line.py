@@ -152,7 +152,7 @@ def main():
     long_points, lat_points = get_points_on_line(long_bins, lat_bins)
     long_index, lat_index = get_long_lat_index(long_bins, lat_bins, long_points, lat_points)
     intensity_data = get_intensity_by_index(long_index, lat_index, long_bins, lat_bins)
-    calc_sum()
+
 
 
 
