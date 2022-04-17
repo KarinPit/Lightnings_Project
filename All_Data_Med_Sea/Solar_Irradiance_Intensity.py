@@ -41,7 +41,8 @@ def main():
     fields = ['date_yyyymmdd', 'tsi_1au', 'tsi_true_earth']
     names = ['date_yyyymmdd', 'date_jdn', 'avg_measurement_date_jdn', 'std_dev_measurement_date', 'tsi_1au', 'instrument_accuracy_1au', 'instrument_precision_1au', 'solar_standard_deviation_1au', 'measurement_uncertainty_1au', 'tsi_true_earth', 'instrument_accuracy_true_earth', 'instrument_precision_true_earth', 'solar_standard_deviation_true_earth', 'measurement_uncertainty_true_earth', 'provisional_flag']
     raw_df = pd.read_csv('D:/WWLLN-Intensity/Validation CSV/Irradiance/colorado_solar_data.txt', delimiter=',', names=names, usecols=fields)
-    get_all_years_data_excel(raw_df)
+    print(raw_df)
+    # get_all_years_data_excel(raw_df)
     # get_all_years_data_plot(raw_df)
 
 
